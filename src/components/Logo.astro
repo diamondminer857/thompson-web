@@ -1,0 +1,52 @@
+---
+/**
+ * The Thompson mark, redrawn from logo_3000x3000.png.
+ *
+ * One path with fill-rule="evenodd": the rounded square fills, the face square
+ * punches a hole, the eyes and mouth fill again. That means the face is
+ * *transparent* rather than white, so the mark sits on any background and
+ * inverts for free when `color` flips in dark mode.
+ *
+ * The source PNG measured 2302 x 2328 px — not quite square. This is squared.
+ *
+ * Sizing lives here rather than in the caller's scoped CSS: Astro's scope
+ * attribute is not propagated into a child component, so a `.mark {}` rule in
+ * the parent would never match this element.
+ */
+interface Props {
+  /** Any CSS length; height follows the 1:1 viewBox. */
+  size: string;
+  opacity?: number;
+}
+const { size, opacity } = Astro.props;
+
+const PATH = [
+  // outer rounded square, r = 182
+  'M182 0H818A182 182 0 0 1 1000 182V818A182 182 0 0 1 818 1000H182A182 182 0 0 1 0 818V182A182 182 0 0 1 182 0Z',
+  // face
+  'M219 221H781V783H219Z',
+  // eyes
+  'M273 323H392V442H273Z',
+  'M608 323H727V442H608Z',
+  // mouth: a U with a shallow rectangular notch bitten out of the top
+  'M288 643H374V673H624V643H710V684A78 78 0 0 1 632 762H366A78 78 0 0 1 288 684Z',
+].join('');
+---
+
+<svg
+  viewBox="0 0 1000 1000"
+  fill="currentColor"
+  fill-rule="evenodd"
+  role="img"
+  aria-label="Thompson"
+  style={{ width: size, opacity }}
+>
+  <path d={PATH} />
+</svg>
+
+<style>
+  svg {
+    display: block;
+    height: auto;
+  }
+</style>

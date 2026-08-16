@@ -1,0 +1,19 @@
+---
+import Base from '../layouts/Base.astro';
+import Site from '../components/Site.astro';
+import { posterVariants } from '../site';
+
+/**
+ * /p1, /p2, … — one real page per poster, identical content. The QR on each
+ * poster points at its own path, so Cloudflare Web Analytics shows which line
+ * actually gets scanned. They carry noindex + a canonical to "/" so search
+ * engines see a single page.
+ */
+export function getStaticPaths() {
+  return posterVariants.map(({ slug }) => ({ params: { variant: slug } }));
+}
+---
+
+<Base noindex>
+  <Site />
+</Base>

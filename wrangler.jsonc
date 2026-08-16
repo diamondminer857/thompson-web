@@ -1,0 +1,15 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "thompson-web",
+	"compatibility_date": "2026-08-16",
+	// No "main": the site is fully static, so this Worker serves assets only.
+	"assets": {
+		"directory": "./dist",
+		"not_found_handling": "404-page"
+	},
+	"observability": {
+		"enabled": true
+	},
+	"workers_dev": false,
+	"preview_urls": false
+}

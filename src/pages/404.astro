@@ -1,0 +1,42 @@
+---
+import Base from '../layouts/Base.astro';
+import Logo from '../components/Logo.astro';
+import { site } from '../site';
+---
+
+<Base title={`${site.name} — Not found`} noindex>
+  <main>
+    <Logo size="clamp(4rem, 16vw, 6rem)" />
+    <p>Nothing here.</p>
+    <a href="/">Go back</a>
+  </main>
+</Base>
+
+<style>
+  main {
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    padding: clamp(1.5rem, 6vw, 4rem);
+    text-align: center;
+  }
+
+  p {
+    margin: 0;
+    font-weight: 700;
+    font-size: clamp(1.5rem, 7vw, 2.25rem);
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+  }
+
+  a {
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+    text-indent: 0.15em;
+    text-transform: uppercase;
+    text-underline-offset: 0.4em;
+  }
+</style>

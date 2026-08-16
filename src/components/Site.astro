@@ -1,0 +1,267 @@
+---
+import Logo from './Logo.astro';
+import { site } from '../site';
+
+const { latestMix } = site;
+---
+
+<main>
+  <!-- The landing screen. Same order as the poster: mark, line, rule, strapline. -->
+  <section class="hero">
+    <Logo size="clamp(5.5rem, 22vw, 9rem)" />
+
+    <h1>{site.headline}</h1>
+
+    <hr />
+    <p class="strapline">{site.strapline}</p>
+
+    <a class="cue" href="#haven" aria-label="Skip to the mix">
+      <span class="cue-line"></span>
+    </a>
+  </section>
+
+  <section class="block" id="haven">
+    <p class="label">{latestMix.label} — mix series</p>
+    <p class="episode">#{latestMix.number}</p>
+
+    <div class="player" data-feed={latestMix.feed}>
+      <button type="button" class="play">
+        <svg viewBox="0 0 24 24" aria-hidden="true" width="18" height="18">
+          <path d="M6 3.5 20.5 12 6 20.5Z" fill="currentColor" />
+        </svg>
+        <span>Play latest episode</span>
+      </button>
+    </div>
+
+    <p class="note">
+      Every month. <a href={site.mixcloud}>Full series on Mixcloud</a>.
+    </p>
+  </section>
+
+  <section class="block">
+    <p class="label">Elsewhere</p>
+    <ul class="links">
+      <li><a href={site.instagram} rel="me noopener">Instagram</a></li>
+      <li><a href={site.mixcloud} rel="me noopener">Mixcloud</a></li>
+    </ul>
+  </section>
+
+  <section class="block" id="booking">
+    <p class="label">Bookings</p>
+    <a class="email" href={`mailto:${site.bookingEmail}`}>{site.bookingEmail}</a>
+    <p class="who">{site.realName} · {site.base}</p>
+  </section>
+
+  <footer>
+    <Logo size="2rem" opacity={0.35} />
+  </footer>
+</main>
+
+<script>
+  /* The Mixcloud widget is a third-party iframe that sets cookies and costs
+     ~300 kB. Loading it on click keeps the landing screen instant and means
+     nothing third-party runs for a visitor who never asks for the mix. */
+  const host = document.querySelector<HTMLElement>('.player');
+  const button = host?.querySelector('button');
+
+  button?.addEventListener('click', () => {
+    const feed = host!.dataset.feed!;
+    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    const frame = document.createElement('iframe');
+    frame.src =
+      'https://player-widget.mixcloud.com/widget/iframe/?hide_cover=1&autoplay=1' +
+      `&light=${dark ? 0 : 1}&feed=${encodeURIComponent(feed)}`;
+    frame.width = '100%';
+    frame.height = '120';
+    frame.loading = 'lazy';
+    frame.allow = 'autoplay; encrypted-media';
+    frame.title = 'Haven mix player';
+    frame.style.border = '0';
+
+    host!.replaceChildren(frame);
+  });
+</script>
+
+<style>
+  main {
+    --gutter: clamp(1.5rem, 6vw, 4rem);
+  }
+
+  /* --- landing screen --- */
+
+  .hero {
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(1.75rem, 5vh, 3rem);
+    padding: var(--gutter);
+    text-align: center;
+    position: relative;
+  }
+
+  h1 {
+    margin: 0;
+    font-weight: 700;
+    font-size: clamp(2.25rem, 11vw, 5.5rem);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    max-width: 12ch;
+    text-wrap: balance;
+  }
+
+  hr {
+    width: clamp(4rem, 12vw, 7rem);
+    height: 0;
+    margin: 0;
+    border: 0;
+    border-top: 1.5px solid var(--ink);
+  }
+
+  .strapline {
+    margin: 0;
+    font-size: clamp(0.7rem, 2.4vw, 0.85rem);
+    letter-spacing: 0.38em;
+    /* Tracking adds a trailing gap after the last glyph, which drags centred
+       text half a step left. Indent by half the tracking to put it back. */
+    text-indent: 0.19em;
+    text-transform: uppercase;
+  }
+
+  .cue {
+    position: absolute;
+    bottom: max(var(--gutter), env(safe-area-inset-bottom));
+    display: block;
+    padding: 0.75rem;
+  }
+
+  .cue-line {
+    display: block;
+    width: 1px;
+    height: 2.5rem;
+    background: var(--ink);
+    transform-origin: top;
+    animation: drop 2.4s ease-in-out infinite;
+  }
+
+  @keyframes drop {
+    0%,
+    100% {
+      transform: scaleY(0.25);
+      opacity: 0.35;
+    }
+    50% {
+      transform: scaleY(1);
+      opacity: 1;
+    }
+  }
+
+  /* --- the rest --- */
+
+  .block {
+    padding: clamp(3.5rem, 12vh, 7rem) var(--gutter);
+    max-width: 34rem;
+    margin-inline: auto;
+    border-top: 1px solid color-mix(in srgb, var(--ink) 15%, transparent);
+  }
+
+  .label {
+    margin: 0 0 0.75rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    opacity: 0.55;
+  }
+
+  .episode {
+    margin: 0 0 1.5rem;
+    font-weight: 700;
+    font-size: clamp(2.5rem, 12vw, 4rem);
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+
+  .player {
+    min-height: 120px;
+    display: grid;
+  }
+
+  .play {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 1.25rem;
+    font: inherit;
+    font-size: 0.8rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--paper);
+    background: var(--ink);
+    border: 0;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+
+  .play:hover {
+    opacity: 0.82;
+  }
+
+  .note {
+    margin: 1.25rem 0 0;
+    font-size: 0.85rem;
+    opacity: 0.6;
+  }
+
+  .links {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .links a,
+  .note a,
+  .email {
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.25em;
+  }
+
+  .links a {
+    display: inline-block;
+    padding: 0.4rem 0;
+    font-weight: 700;
+    font-size: clamp(1.5rem, 7vw, 2.25rem);
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+
+  .links a:hover {
+    text-decoration: underline;
+  }
+
+  .email {
+    font-weight: 700;
+    font-size: clamp(1.15rem, 5.5vw, 1.9rem);
+    letter-spacing: -0.02em;
+    /* Long address, narrow phone. */
+    overflow-wrap: anywhere;
+  }
+
+  .who {
+    margin: 1rem 0 0;
+    font-size: 0.85rem;
+    opacity: 0.6;
+  }
+
+  footer {
+    display: flex;
+    justify-content: center;
+    padding: 0 var(--gutter) calc(var(--gutter) + env(safe-area-inset-bottom));
+  }
+
+</style>
