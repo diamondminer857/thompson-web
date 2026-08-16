@@ -1,8 +1,24 @@
 ---
 import Logo from './Logo.astro';
-import { site } from '../site';
+import { nextEvent, site } from '../site';
 
 const { latestMix } = site;
+
+/* A gig that has already finished is worse than no gig at all, so it drops out
+   of the page on the next build rather than sitting there going stale. */
+const event = nextEvent && new Date(nextEvent.end) > new Date() ? nextEvent : null;
+
+/** "Saturday 29 August 2026 · 14:00", always in the venue's own time. */
+function formatWhen(iso: string) {
+  const at = new Date(iso);
+  const part = (options: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Prague', ...options }).format(at);
+
+  const day = part({ weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const time = part({ hour: '2-digit', minute: '2-digit', hour12: false });
+
+  return `${day} · ${time}`;
+}
 ---
 
 <main>
@@ -13,12 +29,57 @@ const { latestMix } = site;
     <h1>{site.headline}</h1>
 
     <hr />
-    <p class="strapline">{site.strapline}</p>
 
+    <!-- Name and genre are one signature, so they sit closer to each other
+         than the hero's own rhythm would put them. -->
+    <div class="signature">
+      <p class="wordmark">{site.name}</p>
+      <p class="strapline">{site.strapline}</p>
+    </div>
+
+    <!--
+      The haven, drawn: something weightless holding itself off the ground,
+      shedding halos upward. The shadow is what sells it — it breathes in
+      counterpoint to the bob, so the orb reads as levitating rather than
+      merely moving. Delays are inline so the stagger survives reordering.
+    -->
     <a class="cue" href="#haven" aria-label="Skip to the mix">
-      <span class="cue-line"></span>
+      <svg class="cue-art" viewBox="0 0 48 72" aria-hidden="true">
+        <ellipse class="cue-ring" cx="24" cy="30" rx="13" ry="3.6" />
+        <ellipse class="cue-ring" cx="24" cy="30" rx="13" ry="3.6" style="animation-delay: -3.33s" />
+        <ellipse class="cue-ring" cx="24" cy="30" rx="13" ry="3.6" style="animation-delay: -1.67s" />
+
+        <circle class="cue-spark" cx="13.5" cy="33" r="1" />
+        <circle class="cue-spark" cx="34.5" cy="35" r="0.9" style="animation-delay: -3.1s" />
+        <circle class="cue-spark" cx="28" cy="38" r="0.7" style="animation-delay: -1.6s" />
+
+        <circle class="cue-orb" cx="24" cy="30" r="5.5" />
+        <ellipse class="cue-shadow" cx="24" cy="64" rx="10" ry="2.6" />
+      </svg>
     </a>
   </section>
+
+  {
+    event && (
+      <section class="block" id="next">
+        <p class="label">Next</p>
+        <time class="when" datetime={event.start}>
+          {formatWhen(event.start)}
+        </time>
+        <p class="event">{event.title}</p>
+        <p class="where">{event.address}</p>
+
+        <div class="actions">
+          <a class="btn" href={event.url} rel="noopener">
+            <span>Event details</span>
+          </a>
+          <a class="btn btn-ghost" href="/event.ics">
+            <span>Add to calendar</span>
+          </a>
+        </div>
+      </section>
+    )
+  }
 
   <section class="block" id="haven">
     <p class="label">{latestMix.label} — mix series</p>
@@ -54,10 +115,44 @@ const { latestMix } = site;
 
   <footer>
     <Logo size="2rem" opacity={0.35} />
+
+    <button type="button" class="theme" aria-pressed="false">
+      <span class="theme-swatch" aria-hidden="true"></span>
+      <span>Dark mode</span>
+    </button>
   </footer>
 </main>
 
 <script>
+  const root = document.documentElement;
+  const isDark = () => root.dataset.theme === 'dark';
+
+  /* The page is white by design and stays that way for everyone; this only
+     exists for the visitor who explicitly wants the negative. The <head>
+     script applies the stored choice before paint — this just keeps the
+     button and the browser chrome in step with it. */
+  const toggle = document.querySelector<HTMLButtonElement>('.theme');
+  const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+
+  const syncTheme = () => {
+    toggle?.setAttribute('aria-pressed', String(isDark()));
+    if (themeColor) themeColor.content = isDark() ? '#000000' : '#ffffff';
+  };
+
+  syncTheme();
+
+  toggle?.addEventListener('click', () => {
+    if (isDark()) delete root.dataset.theme;
+    else root.dataset.theme = 'dark';
+
+    // Private mode and blocked storage both throw here; the flip still works.
+    try {
+      localStorage.setItem('theme', isDark() ? 'dark' : 'light');
+    } catch {}
+
+    syncTheme();
+  });
+
   /* The Mixcloud widget is a third-party iframe that sets cookies and costs
      ~300 kB. Loading it on click keeps the landing screen instant and means
      nothing third-party runs for a visitor who never asks for the mix. */
@@ -66,7 +161,8 @@ const { latestMix } = site;
 
   button?.addEventListener('click', () => {
     const feed = host!.dataset.feed!;
-    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    // Match the page, not the system — the two no longer agree by default.
+    const dark = isDark();
 
     const frame = document.createElement('iframe');
     frame.src =
@@ -91,6 +187,10 @@ const { latestMix } = site;
   /* --- landing screen --- */
 
   .hero {
+    /* Width of the levitation mark; its height is 1.5x that, from the viewBox.
+       Declared here so the hero can reserve room for it below the content. */
+    --cue: clamp(5rem, 16vw, 7rem);
+
     min-height: 100svh;
     display: flex;
     flex-direction: column;
@@ -98,8 +198,74 @@ const { latestMix } = site;
     justify-content: center;
     gap: clamp(1.75rem, 5vh, 3rem);
     padding: var(--gutter);
+    /* The mark is absolutely positioned, so the centred stack has to be lifted
+       off it explicitly or the two collide on a short screen. */
+    padding-bottom: calc(var(--gutter) + var(--cue) * 1.5);
     text-align: center;
     position: relative;
+    /* Contains the negative z-index of the aura, which would otherwise slip
+       behind the body background entirely. */
+    isolation: isolate;
+  }
+
+  /* The atmosphere: a slow updraft of light behind the mark. A few percent of
+     ink, so it reads as air in the room rather than as a gradient — the page
+     should feel lifted, not decorated. Inverts with the theme for free. */
+  .hero::before,
+  .hero::after {
+    content: '';
+    position: absolute;
+    inset: -12%;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  .hero::before {
+    background: radial-gradient(
+      42% 32% at 50% 36%,
+      color-mix(in srgb, var(--ink) 8%, transparent) 0%,
+      transparent 72%
+    );
+    animation: aura-rise 16s ease-in-out infinite;
+  }
+
+  .hero::after {
+    background:
+      radial-gradient(
+        38% 30% at 24% 70%,
+        color-mix(in srgb, var(--ink) 5%, transparent) 0%,
+        transparent 70%
+      ),
+      radial-gradient(
+        34% 26% at 78% 22%,
+        color-mix(in srgb, var(--ink) 4%, transparent) 0%,
+        transparent 70%
+      );
+    animation: aura-drift 23s ease-in-out infinite;
+  }
+
+  @keyframes aura-rise {
+    0%,
+    100% {
+      transform: translateY(1.5%) scale(1);
+      opacity: 0.8;
+    }
+    50% {
+      transform: translateY(-2.5%) scale(1.1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes aura-drift {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1.06);
+      opacity: 0.55;
+    }
+    50% {
+      transform: translate(2.5%, -2%) scale(1);
+      opacity: 0.95;
+    }
   }
 
   h1 {
@@ -121,6 +287,20 @@ const { latestMix } = site;
     border-top: 1.5px solid var(--ink);
   }
 
+  .signature {
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  .wordmark {
+    margin: 0;
+    font-weight: 700;
+    font-size: clamp(0.95rem, 3.6vw, 1.25rem);
+    letter-spacing: 0.42em;
+    text-indent: 0.21em;
+    text-transform: uppercase;
+  }
+
   .strapline {
     margin: 0;
     font-size: clamp(0.7rem, 2.4vw, 0.85rem);
@@ -133,29 +313,109 @@ const { latestMix } = site;
 
   .cue {
     position: absolute;
-    bottom: max(var(--gutter), env(safe-area-inset-bottom));
+    bottom: max(calc(var(--gutter) * 0.5), env(safe-area-inset-bottom));
     display: block;
-    padding: 0.75rem;
+    padding: 0.5rem;
+    line-height: 0;
   }
 
-  .cue-line {
-    display: block;
-    width: 1px;
-    height: 2.5rem;
-    background: var(--ink);
-    transform-origin: top;
-    animation: drop 2.4s ease-in-out infinite;
+  .cue-art {
+    width: var(--cue);
+    height: auto;
+    fill: currentColor;
+    /* Halos travel past the top of the viewBox before they finish fading. */
+    overflow: visible;
   }
 
-  @keyframes drop {
+  .cue-orb {
+    animation: cue-bob 5s ease-in-out infinite;
+  }
+
+  /* Scaling about the shape's own centre, not the SVG origin. */
+  .cue-shadow,
+  .cue-ring {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  .cue-shadow {
+    opacity: 0.2;
+    animation: cue-ground 5s ease-in-out infinite;
+  }
+
+  .cue-ring {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1;
+    opacity: 0;
+    animation: cue-lift 5s ease-out infinite;
+  }
+
+  .cue-spark {
+    opacity: 0;
+    animation: cue-spark 5s ease-in infinite;
+  }
+
+  @keyframes cue-bob {
     0%,
     100% {
-      transform: scaleY(0.25);
-      opacity: 0.35;
+      transform: translateY(2px);
     }
     50% {
-      transform: scaleY(1);
-      opacity: 1;
+      transform: translateY(-4px);
+    }
+  }
+
+  /* Tightening as the orb climbs is the whole illusion. */
+  @keyframes cue-ground {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.2;
+    }
+    50% {
+      transform: scale(0.7);
+      opacity: 0.09;
+    }
+  }
+
+  @keyframes cue-lift {
+    0% {
+      transform: translateY(2px) scale(0.5);
+      opacity: 0;
+    }
+    22% {
+      opacity: 0.5;
+    }
+    100% {
+      transform: translateY(-26px) scale(1.35);
+      opacity: 0;
+    }
+  }
+
+  @keyframes cue-spark {
+    0% {
+      transform: translateY(0);
+      opacity: 0;
+    }
+    35% {
+      opacity: 0.45;
+    }
+    100% {
+      transform: translateY(-20px);
+      opacity: 0;
+    }
+  }
+
+  /* The global reduced-motion rule freezes every animation on its last frame,
+     which would leave the halos invisible. Hold them as a still composition. */
+  @media (prefers-reduced-motion: reduce) {
+    .cue-ring {
+      opacity: 0.28;
+    }
+
+    .cue-spark {
+      opacity: 0.35;
     }
   }
 
@@ -176,6 +436,44 @@ const { latestMix } = site;
     opacity: 0.55;
   }
 
+  /* --- next gig --- */
+
+  .when {
+    display: block;
+    margin-bottom: 0.6rem;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+  }
+
+  .event {
+    margin: 0 0 0.5rem;
+    font-weight: 700;
+    font-size: clamp(1.75rem, 8.5vw, 2.75rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  .where {
+    margin: 0 0 1.75rem;
+    font-size: 0.85rem;
+    opacity: 0.6;
+  }
+
+  .actions {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  /* Side by side only once each label still fits on one line. */
+  @media (min-width: 30rem) {
+    .actions {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  /* --- the mix --- */
+
   .episode {
     margin: 0 0 1.5rem;
     font-weight: 700;
@@ -189,7 +487,8 @@ const { latestMix } = site;
     display: grid;
   }
 
-  .play {
+  .play,
+  .btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -200,15 +499,30 @@ const { latestMix } = site;
     font-size: 0.8rem;
     letter-spacing: 0.18em;
     text-transform: uppercase;
+    text-decoration: none;
     color: var(--paper);
     background: var(--ink);
-    border: 0;
+    /* Matched border, so the ghost variant lines up with the solid one. */
+    border: 1px solid var(--ink);
     cursor: pointer;
     transition: opacity 0.15s;
   }
 
-  .play:hover {
+  .play:hover,
+  .btn:hover {
     opacity: 0.82;
+  }
+
+  .btn-ghost {
+    color: var(--ink);
+    background: none;
+  }
+
+  /* Tracking leaves a gap after the last glyph, which drags centred labels
+     half a step left. */
+  .play span,
+  .btn span {
+    margin-right: -0.18em;
   }
 
   .note {
@@ -260,8 +574,54 @@ const { latestMix } = site;
 
   footer {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.75rem;
     padding: 0 var(--gutter) calc(var(--gutter) + env(safe-area-inset-bottom));
+  }
+
+  /* Deliberately quiet, and deliberately the last thing on the page: white is
+     the identity, and this is only here for whoever insists otherwise. */
+  .theme {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.25rem;
+    font: inherit;
+    font-size: 0.65rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: inherit;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    opacity: 0.3;
+    transition: opacity 0.2s;
+  }
+
+  .theme:hover,
+  .theme:focus-visible {
+    opacity: 0.75;
+  }
+
+  /* Tracking leaves a gap after the last glyph. The label is a flex item, so
+     the text-indent trick used on the straplines does not apply — trim it. */
+  .theme > span:last-child {
+    margin-right: -0.28em;
+  }
+
+  .theme-swatch {
+    width: 0.7rem;
+    height: 0.7rem;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    /* Half-lit, and filled once the negative is on. */
+    background: linear-gradient(90deg, currentColor 50%, transparent 50%);
+    transition: background 0.2s;
+  }
+
+  .theme[aria-pressed='true'] .theme-swatch {
+    background: currentColor;
   }
 
 </style>

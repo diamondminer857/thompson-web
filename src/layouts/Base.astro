@@ -34,8 +34,21 @@ const beacon = import.meta.env.PUBLIC_CF_BEACON_TOKEN;
 
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" />
+
+    <script is:inline>
+      /* White is the identity, not a "light mode": the poster is black ink on
+         white paper and the whole feeling is lift, not night. So the system's
+         dark preference is deliberately never consulted — only an explicit
+         choice from the footer toggle, stored here, turns the page over.
+         Inline and before paint, so a returning visitor never sees a flash. */
+      try {
+        if (localStorage.getItem('theme') === 'dark') {
+          document.documentElement.dataset.theme = 'dark';
+          document.querySelector('meta[name="theme-color"]').content = '#000000';
+        }
+      } catch {}
+    </script>
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content={site.name} />
@@ -68,16 +81,17 @@ const beacon = import.meta.env.PUBLIC_CF_BEACON_TOKEN;
   :root {
     --paper: #fff;
     --ink: #000;
-    /* The identity is pure black and white, so dark mode is a true negative
-       rather than a separate palette. The mark inverts with it. */
-    color-scheme: light dark;
+    /* Always light, whatever the system says — see the inline script in <head>.
+       There is no `prefers-color-scheme` rule here on purpose. */
+    color-scheme: light;
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --paper: #000;
-      --ink: #fff;
-    }
+  /* The identity is pure black and white, so the opt-in dark theme is a true
+     negative rather than a second palette. The mark inverts with it. */
+  :root[data-theme='dark'] {
+    --paper: #000;
+    --ink: #fff;
+    color-scheme: dark;
   }
 
   *,
@@ -100,6 +114,10 @@ const beacon = import.meta.env.PUBLIC_CF_BEACON_TOKEN;
     font-weight: 300;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* Flipping the theme should feel like a dimmer, not a light switch. */
+    transition:
+      background-color 0.4s ease,
+      color 0.4s ease;
   }
 
   a {
