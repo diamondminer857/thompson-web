@@ -1,0 +1,53 @@
+---
+import Logo from './Logo.astro';
+---
+
+<!--
+  Plays once per browser session — see the pre-paint script in `Base.astro`,
+  which sets `data-intro="pending"` before first paint, and `playIntro()` in
+  `motion.ts`, which drives the actual sequence and clears the flag.
+
+  Two independent nets against a stuck full-screen overlay if `motion.ts`
+  never runs (blocked, erroring, slow network): the CSS animation below lifts
+  it on its own after a few seconds, and `prefers-reduced-motion` skips it
+  outright — this is exactly the kind of one-off flourish that preference
+  exists to remove, not soften.
+-->
+<div class="intro" aria-hidden="true">
+  <Logo size="clamp(4rem, 14vw, 6rem)" />
+</div>
+
+<style>
+  .intro {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    /* Hardcoded, not token-driven — same reasoning as the hero (see README
+       "Design notes"): a branded beat, not a themed surface, so it stays
+       dark regardless of which palette is stored. */
+    background: #0a0a0a;
+    color: #fff;
+    animation: intro-autohide 0.01ms 3.2s forwards;
+  }
+
+  :global(:root[data-intro='pending']) .intro {
+    display: flex;
+  }
+
+  @keyframes intro-autohide {
+    to {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .intro {
+      display: none !important;
+    }
+  }
+</style>

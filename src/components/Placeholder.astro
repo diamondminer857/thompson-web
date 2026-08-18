@@ -1,0 +1,154 @@
+---
+import Logo from './Logo.astro';
+
+/**
+ * Stand-in for a media asset that doesn't exist yet. Renders at the real
+ * aspect ratio so the layout never shifts when the placeholder is swapped
+ * for the file it names — that's the whole point of keeping `ratio` in
+ * `site.ts` next to `src: null` rather than letting the image itself decide
+ * the box.
+ *
+ * Designed as an intentional dark plate — a duotone wash, a faint watermark,
+ * contact-sheet corner ticks — rather than dev scaffolding: the previous
+ * version was a dashed hatch box captioned with the literal file path, which
+ * read as unfinished work rather than a deliberate empty state. The path
+ * still exists as a hint for whoever adds the real file, but only in dev.
+ */
+interface Props {
+  ratio: `${number} / ${number}`;
+  /** Where the real file should land — shown only under `import.meta.env.DEV`. */
+  path: string;
+  label?: string;
+  tone?: 'cyan' | 'magenta' | 'violet';
+  class?: string;
+}
+const { ratio, path, label = 'placeholder', tone = 'cyan', class: className } = Astro.props;
+---
+
+<div
+  class:list={['placeholder', `tone-${tone}`, className]}
+  style={{ aspectRatio: ratio }}
+  role="img"
+  aria-label={`${label} — not yet added`}
+>
+  <div class="mark"><Logo size="100%" opacity={0.07} /></div>
+  <span class="crops" aria-hidden="true"></span>
+  <p class="caption">{label}</p>
+  {import.meta.env.DEV && <p class="dev-path">{path}</p>}
+</div>
+
+<style>
+  .placeholder {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    width: 100%;
+    overflow: hidden;
+    background: var(--paper-raised);
+    color: var(--ink-4);
+  }
+
+  /* The Thompson mark, centred and barely-there — turns an empty slot into
+     branded surface instead of an obviously missing file. */
+  .mark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 38%;
+    transform: translate(-50%, -50%);
+  }
+
+  /* A diagonal duotone wash plus a fine scanline texture — reads as
+     photographic/LED-panel, not as "hatch = empty". `tone` picks which two
+     accents blend so a grid of placeholders (the gallery wheel) varies
+     instead of repeating one box. */
+  .placeholder::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(0deg, color-mix(in srgb, var(--ink) 6%, transparent) 0px, transparent 1px, transparent 3px),
+      linear-gradient(135deg, var(--tone-a, var(--accent-cyan)) 0%, transparent 55%),
+      linear-gradient(-45deg, var(--tone-b, var(--accent-violet)) 0%, transparent 60%);
+    opacity: 0.1;
+  }
+
+  .tone-cyan {
+    --tone-a: var(--accent-cyan);
+    --tone-b: var(--accent-violet);
+  }
+
+  .tone-magenta {
+    --tone-a: var(--accent-magenta);
+    --tone-b: var(--accent-cyan);
+  }
+
+  .tone-violet {
+    --tone-a: var(--accent-violet);
+    --tone-b: var(--accent-magenta);
+  }
+
+  /* Contact-sheet registration ticks in each corner — the same flyer
+     vocabulary as About's offset accent block. */
+  .crops,
+  .crops::before,
+  .crops::after {
+    position: absolute;
+    pointer-events: none;
+  }
+
+  .crops {
+    inset: 0.75rem;
+  }
+
+  .crops::before,
+  .crops::after {
+    content: '';
+    width: 0.6rem;
+    height: 0.6rem;
+    top: 0;
+    left: 0;
+    border-top: 1px solid var(--hairline);
+    border-left: 1px solid var(--hairline);
+  }
+
+  .crops::after {
+    top: auto;
+    left: auto;
+    right: 0;
+    bottom: 0;
+    border-top: 0;
+    border-left: 0;
+    border-right: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .caption {
+    position: relative;
+    margin: 0;
+    padding: 0.75rem 0.9rem;
+    font-size: var(--text-micro);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* Top, not bottom: `.caption` already owns the bottom edge (flex
+     `align-items: flex-end`), and this box can be as narrow as the gallery's
+     tiles — sharing an edge let the two collide and rendered as one
+     unreadable strip. */
+  .dev-path {
+    position: absolute;
+    left: 0.5rem;
+    top: 0.5rem;
+    max-width: calc(100% - 1rem);
+    margin: 0;
+    padding: 0.2rem 0.4rem;
+    font-size: 0.6rem;
+    font-family: ui-monospace, 'SF Mono', monospace;
+    color: var(--ink-4);
+    background: color-mix(in srgb, var(--paper) 70%, transparent);
+    overflow-wrap: anywhere;
+  }
+</style>

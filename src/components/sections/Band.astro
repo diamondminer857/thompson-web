@@ -1,0 +1,115 @@
+---
+import MediaFrame from '../MediaFrame.astro';
+import { band } from '../../site';
+
+/**
+ * A full-bleed textural break between Shows and Haven — the answer to
+ * "add some pictures, not just the gallery". Reuses the hero's own
+ * `head.mp4`/`head.webm` at the *same* URLs rather than a second asset: the
+ * browser already has them cached from the hero, so this costs one more
+ * `<video>` element and zero more bytes. Falls back to a still `Media` plate
+ * if `band.video` is ever unset, same as the hero does.
+ *
+ * Deliberately no `id`: `Nav.astro`'s scrollspy clears `aria-current` off
+ * every link whenever its `IntersectionObserver` fires for a section none of
+ * them points at, so giving this an `id` would make the nav highlight blink
+ * off as a visitor scrolls past. It also needs no `.block::before` divider —
+ * the top/bottom fade into `--paper` already reads as the section break.
+ */
+---
+
+<section class="band" aria-label={`${band.line} — THOMPSON live`}>
+  {
+    band.video ? (
+      <div class="band-media" aria-hidden="true">
+        <img class="band-poster" src={band.video.poster} alt="" />
+        <video class="band-footage" autoplay muted loop playsinline preload="none" poster={band.video.poster}>
+          <source src={band.video.webm} type="video/webm" />
+          <source src={band.video.mp4} type="video/mp4" />
+        </video>
+        <div class="band-scrim" />
+      </div>
+    ) : (
+      <div class="band-media band-still" aria-hidden="true">
+        <MediaFrame {...band.still} class="band-frame" />
+        <div class="band-scrim" />
+      </div>
+    )
+  }
+
+  <p class="band-line reveal">{band.line}</p>
+</section>
+
+<style>
+  .band {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    min-height: clamp(16rem, 44vh, 30rem);
+    display: grid;
+    place-items: center;
+    padding: var(--gutter);
+  }
+
+  .band-media {
+    position: absolute;
+    inset: 0;
+  }
+
+  .band-poster,
+  .band-footage {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* The hero already shows this footage head-on; crop tighter and
+       desaturate so the band reads as texture, not a repeat of the hero. */
+    object-position: 50% 35%;
+    filter: grayscale(0.55) contrast(1.15);
+  }
+
+  .band-still :global(.band-frame) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .band-footage {
+      display: none;
+    }
+  }
+
+  .band-scrim {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, var(--paper) 0%, transparent 18%, transparent 82%, var(--paper) 100%),
+      linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--accent-cyan) 22%, transparent),
+        transparent 45%,
+        color-mix(in srgb, var(--accent-magenta) 22%, transparent)
+      );
+    mix-blend-mode: hard-light;
+  }
+
+  .band-line {
+    position: relative;
+    margin: 0;
+    max-width: 16ch;
+    text-align: center;
+    font-family: var(--font-display);
+    font-weight: 800;
+    color: #fff;
+    font-size: clamp(2rem, 9vw, 6.5rem);
+    line-height: 0.92;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+    text-wrap: balance;
+    /* The type cuts out of the footage instead of sitting flatly on top. */
+    mix-blend-mode: exclusion;
+  }
+</style>

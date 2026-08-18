@@ -1,5 +1,6 @@
 ---
 import { Font } from 'astro:assets';
+import '../styles/global.css';
 import { site } from '../site';
 
 interface Props {
@@ -34,18 +35,33 @@ const beacon = import.meta.env.PUBLIC_CF_BEACON_TOKEN;
 
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="theme-color" content="#ffffff" />
+    <meta name="theme-color" content="#0a0a0a" />
 
     <script is:inline>
-      /* White is the identity, not a "light mode": the poster is black ink on
-         white paper and the whole feeling is lift, not night. So the system's
-         dark preference is deliberately never consulted — only an explicit
-         choice from the footer toggle, stored here, turns the page over.
-         Inline and before paint, so a returning visitor never sees a flash. */
+      /* Dark is the identity now, not the toggle's target — see README
+         "Design notes". `prefers-color-scheme` is still never consulted; the
+         only way to the white poster page is this explicit choice, stored
+         here and re-applied before paint so a returning visitor never sees
+         a flash. Visitors carrying an old 'dark' value from before the flip
+         land on the new default, which is exactly what they had. */
       try {
-        if (localStorage.getItem('theme') === 'dark') {
-          document.documentElement.dataset.theme = 'dark';
-          document.querySelector('meta[name="theme-color"]').content = '#000000';
+        if (localStorage.getItem('theme') === 'light') {
+          document.documentElement.dataset.theme = 'light';
+          document.querySelector('meta[name="theme-color"]').content = '#ffffff';
+        }
+      } catch {}
+    </script>
+
+    <script is:inline>
+      /* First screen of a browser session gets a branded intro beat (see
+         `Intro.astro` / `motion.ts`'s `playIntro`) — a poster scan following a
+         fresh tab. Repeat views in the same tab (scrolling back to `/`, a
+         poster-variant page loaded right after) don't replay it. Set before
+         paint so the overlay is the first frame rather than flashing in after
+         the hero has already appeared underneath it. */
+      try {
+        if (!sessionStorage.getItem('introSeen')) {
+          document.documentElement.dataset.intro = 'pending';
         }
       } catch {}
     </script>
@@ -61,6 +77,7 @@ const beacon = import.meta.env.PUBLIC_CF_BEACON_TOKEN;
     <meta name="twitter:card" content="summary_large_image" />
 
     <Font cssVariable="--font-display" preload />
+    <Font cssVariable="--font-body" preload />
 
     {beacon && (
       <script
@@ -76,72 +93,3 @@ const beacon = import.meta.env.PUBLIC_CF_BEACON_TOKEN;
     <slot />
   </body>
 </html>
-
-<style is:global>
-  :root {
-    --paper: #fff;
-    --ink: #000;
-    /* Always light, whatever the system says — see the inline script in <head>.
-       There is no `prefers-color-scheme` rule here on purpose. */
-    color-scheme: light;
-  }
-
-  /* The identity is pure black and white, so the opt-in dark theme is a true
-     negative rather than a second palette. The mark inverts with it. */
-  :root[data-theme='dark'] {
-    --paper: #000;
-    --ink: #fff;
-    color-scheme: dark;
-  }
-
-  *,
-  *::before,
-  *::after {
-    box-sizing: border-box;
-  }
-
-  html {
-    -webkit-text-size-adjust: 100%;
-    /* The hero's scroll cue is an in-page anchor. */
-    scroll-behavior: smooth;
-  }
-
-  body {
-    margin: 0;
-    background: var(--paper);
-    color: var(--ink);
-    font-family: var(--font-display), system-ui, sans-serif;
-    font-weight: 300;
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
-    /* Flipping the theme should feel like a dimmer, not a light switch. */
-    transition:
-      background-color 0.4s ease,
-      color 0.4s ease;
-  }
-
-  a {
-    color: inherit;
-  }
-
-  ::selection {
-    background: var(--ink);
-    color: var(--paper);
-  }
-
-  :focus-visible {
-    outline: 2px solid var(--ink);
-    outline-offset: 4px;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-      scroll-behavior: auto !important;
-    }
-  }
-</style>

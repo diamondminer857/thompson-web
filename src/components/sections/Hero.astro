@@ -1,0 +1,473 @@
+---
+import Logo from '../Logo.astro';
+import { formatShort } from '../../lib/dates';
+import { heroVideo, nextEvent, site } from '../../site';
+
+interface Props {
+  /** A poster variant echoes back its own printed line instead of the
+   * default headline, so the page a scan lands on matches the paper. */
+  headline?: string;
+}
+const { headline = site.headline } = Astro.props;
+
+// The hero is the one section that deliberately does NOT follow the
+// --paper/--ink inversion the rest of the page promises (see README "Design
+// notes"): its background is real footage (or the aura standing in for it),
+// and video can't invert. So its colours are hardcoded rather than
+// token-driven, and it stays a dark band with white type even when the
+// visitor has switched the page to Light mode.
+---
+
+<section class="hero" id="top">
+  <div class:list={['backdrop', { 'has-video': heroVideo }]} aria-hidden="true">
+    {
+      heroVideo && (
+        <>
+          {/* Sits under the video always, so hiding the video under
+              prefers-reduced-motion (below) reveals a still frame rather
+              than the video element's own default black box. */}
+          <img class="poster" src={heroVideo.poster} alt="" />
+          <video class="footage" autoplay muted loop playsinline poster={heroVideo.poster}>
+            <source src={heroVideo.webm} type="video/webm" />
+            <source src={heroVideo.mp4} type="video/mp4" />
+          </video>
+        </>
+      )
+    }
+    <div class="scrim" />
+
+    <!-- Club lasers, not the page's usual restrained pastel touch — this is
+         the one place the site is allowed to look like a rig. Pure CSS
+         (like `aura-drift` above and the `.cue` halos below) rather than
+         another anime.js hook: five fixtures sweeping and flickering on
+         their own loop, frozen by the global prefers-reduced-motion rule
+         with zero extra JS to gate. `mix-blend-mode: screen` is what keeps
+         them reading as light hitting haze rather than flat coloured bars
+         pasted over the footage. -->
+    <div class="lasers" aria-hidden="true">
+      <span class="laser laser-cyan" style="left: 12%; animation-delay: -1.1s, -0.6s;"></span>
+      <span class="laser laser-pink" style="left: 32%; animation-delay: -4.6s, -1.8s;"></span>
+      <span class="laser laser-violet" style="left: 52%; animation-delay: -2.3s, -3.1s;"></span>
+      <span class="laser laser-pink" style="left: 72%; animation-delay: -6.1s, -0.2s;"></span>
+      <span class="laser laser-cyan" style="left: 90%; animation-delay: -3.4s, -2.5s;"></span>
+    </div>
+  </div>
+
+  <Logo size="clamp(5.5rem, 22vw, 9rem)" />
+
+  <h1>{headline}</h1>
+
+  <hr />
+
+  <!-- Name and genre are one signature, so they sit closer to each other
+       than the hero's own rhythm would put them. -->
+  <div class="signature">
+    <p class="wordmark tracked-center">{site.name}</p>
+    <p class="strapline tracked-center">{site.strapline}</p>
+  </div>
+
+  {
+    nextEvent && (
+      <a class="ticker" href="#shows">
+        <span class="dot" aria-hidden="true" />
+        Next: {formatShort(nextEvent.start)} / {nextEvent.place}
+      </a>
+    )
+  }
+
+  <!--
+    The haven, drawn: something weightless holding itself off the ground,
+    shedding halos upward. The shadow is what sells it — it breathes in
+    counterpoint to the bob, so the orb reads as levitating rather than
+    merely moving. Delays are inline so the stagger survives reordering.
+  -->
+  <a class="cue" href="#shows" aria-label="Scroll down">
+    <svg class="cue-art" viewBox="0 0 48 72" aria-hidden="true">
+      <defs>
+        <!-- The near (bottom) half of a ring's own bounding box, in its own
+             untransformed coordinate space — objectBoundingBox keeps this
+             attached to the ellipse through the sweep/scale animation, so
+             the clip always cuts the ring in half rather than at some fixed
+             point in the SVG. -->
+        <clipPath id="cue-ring-near" clipPathUnits="objectBoundingBox">
+          <rect x="0" y="0.5" width="1" height="0.5" />
+        </clipPath>
+      </defs>
+
+      <ellipse class="cue-shadow" cx="24" cy="64" rx="10" ry="2.6" />
+
+      <!-- Full rings behind the orb: wherever a ring overlaps the orb's
+           opaque disc, the disc paints over it for free — this is what
+           reads as the ring's far side passing behind the sphere. -->
+      <ellipse class="cue-ring" cx="24" cy="30" rx="13" ry="3.6" />
+      <ellipse class="cue-ring" cx="24" cy="30" rx="13" ry="3.6" style="animation-delay: -3.33s" />
+      <ellipse class="cue-ring" cx="24" cy="30" rx="13" ry="3.6" style="animation-delay: -1.67s" />
+
+      <circle class="cue-orb" cx="24" cy="30" r="5.5" />
+
+      <!-- Same three rings again, painted after the orb but clipped to
+           just their near half — the arc that should read as wrapping in
+           front of the sphere instead of the whole ellipse pasting flat
+           over it. Delays match their behind-orb twin so both halves of
+           each ring move as one. -->
+      <ellipse class="cue-ring" clip-path="url(#cue-ring-near)" cx="24" cy="30" rx="13" ry="3.6" />
+      <ellipse class="cue-ring" clip-path="url(#cue-ring-near)" cx="24" cy="30" rx="13" ry="3.6" style="animation-delay: -3.33s" />
+      <ellipse class="cue-ring" clip-path="url(#cue-ring-near)" cx="24" cy="30" rx="13" ry="3.6" style="animation-delay: -1.67s" />
+
+      <circle class="cue-spark" cx="13.5" cy="33" r="1" />
+      <circle class="cue-spark" cx="34.5" cy="35" r="0.9" style="animation-delay: -3.1s" />
+      <circle class="cue-spark" cx="28" cy="38" r="0.7" style="animation-delay: -1.6s" />
+    </svg>
+  </a>
+</section>
+
+<style>
+  .hero {
+    /* Width of the levitation mark; its height is 1.5x that, from the viewBox.
+       Declared here so the hero can reserve room for it below the content. */
+    --cue: clamp(5rem, 16vw, 7rem);
+
+    /* The hero stays a dark band with white type even in Light mode (see
+       the file-level comment above) — so it pins its own --paper/--ink
+       rather than inheriting the page's inverted pair. Custom properties
+       resolve where they're *declared*, though, so the --ink-N scale from
+       global.css (declared only on :root) would NOT pick up this local
+       pin — it has to be re-declared here against the same pinned pair, or
+       hero text would go black the moment Light mode is on. */
+    --paper: #0a0a0a;
+    --ink: #fff;
+    --ink-1: var(--ink);
+    --ink-2: color-mix(in srgb, var(--ink) 92%, var(--paper));
+    --ink-3: color-mix(in srgb, var(--ink) 72%, var(--paper));
+    --ink-4: color-mix(in srgb, var(--ink) 46%, var(--paper));
+
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(1.75rem, 5vh, 3rem);
+    padding: var(--gutter);
+    /* The mark is absolutely positioned, so the centred stack has to be lifted
+       off it explicitly or the two collide on a short screen. */
+    padding-bottom: calc(var(--gutter) + var(--cue) * 1.5);
+    text-align: center;
+    position: relative;
+    isolation: isolate;
+    color: var(--ink-1);
+  }
+
+  .backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    background: #000;
+  }
+
+  .poster,
+  .footage {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* A moving hero is exactly the kind of motion prefers-reduced-motion asks
+     to be spared — fall back to the poster frame as a still image instead of
+     merely pausing the loop in place. The <img> beneath it is always there
+     once footage exists, so hiding .footage reveals a still frame instead of
+     the video element's own default black box. */
+  @media (prefers-reduced-motion: reduce) {
+    .footage {
+      display: none;
+    }
+  }
+
+  /* Without footage the backdrop is the same atmosphere the page has always
+     had — a slow updraft of light, just scaled to a full-bleed dark ground
+     instead of a few percent of ink. This is the permanent state until real
+     video lands, so it's a real design, not a stopgap. Two of the three
+     glows are tinted (a cool blue low-left, a warm pink upper-right) instead
+     of plain white — coloured stage light, not a coloured page.
+
+     The gradient + the drift live on a `::before`, not on `.backdrop`
+     itself: `.backdrop` is the fixed `overflow: hidden` clip region, exactly
+     hero-sized, and never moves. If the same element both clips *and* gets
+     scaled/translated by the animation, the two keyframes' offsetting
+     translate(2%, -2%)/scale(1) values momentarily undersize it relative to
+     that clip region, opening a hairline gap at one edge that shows
+     whatever is behind the hero (the page background) through it — visible
+     as a seam once that background stopped being a flat colour. The
+     pseudo-element is sized past the clip region on every side (`inset:
+     -8%`) with room to spare over the animation's own 5%/2% range, so it
+     can never pull short of covering it. */
+  .backdrop:not(.has-video)::before {
+    content: '';
+    position: absolute;
+    inset: -8%;
+    background:
+      radial-gradient(46% 34% at 50% 32%, color-mix(in srgb, #fff 16%, transparent) 0%, transparent 72%),
+      radial-gradient(38% 30% at 22% 72%, color-mix(in srgb, var(--accent-cyan) 22%, transparent) 0%, transparent 70%),
+      radial-gradient(34% 26% at 80% 20%, color-mix(in srgb, var(--accent-magenta) 20%, transparent) 0%, transparent 70%),
+      #0a0a0a;
+    animation: aura-drift 24s ease-in-out infinite;
+  }
+
+  @keyframes aura-drift {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1.05);
+    }
+    50% {
+      transform: translate(2%, -2%) scale(1);
+    }
+  }
+
+  /* Darkens the lower two-thirds so the signature stays legible over any
+     footage, regardless of what's happening in frame. */
+  .scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.55) 55%, rgba(0, 0, 0, 0.8) 100%);
+  }
+
+  .lasers {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    mix-blend-mode: screen;
+  }
+
+  .laser {
+    position: absolute;
+    top: -8%;
+    width: 2px;
+    height: 125%;
+    transform-origin: top center;
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      var(--laser-color) 14%,
+      var(--laser-color) 55%,
+      transparent 96%
+    );
+    box-shadow: 0 0 12px 1px var(--laser-color);
+    animation: laser-sweep 8s ease-in-out infinite alternate, laser-flicker 2.6s steps(7) infinite;
+  }
+
+  .laser-cyan {
+    --laser-color: var(--accent-cyan);
+  }
+
+  .laser-pink {
+    --laser-color: var(--accent-magenta);
+  }
+
+  .laser-violet {
+    --laser-color: var(--accent-violet);
+  }
+
+  @keyframes laser-sweep {
+    0% {
+      transform: rotate(-24deg);
+    }
+    100% {
+      transform: rotate(24deg);
+    }
+  }
+
+  @keyframes laser-flicker {
+    0%,
+    100% {
+      opacity: 0.85;
+    }
+    15% {
+      opacity: 0.3;
+    }
+    30% {
+      opacity: 0.95;
+    }
+    45% {
+      opacity: 0.45;
+    }
+    70% {
+      opacity: 0.75;
+    }
+  }
+
+  h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(2.25rem, 11vw, 5.5rem);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    max-width: 12ch;
+    text-wrap: balance;
+  }
+
+  hr {
+    width: clamp(4rem, 12vw, 7rem);
+    height: 1.5px;
+    margin: 0;
+    border: 0;
+    background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
+  }
+
+  .signature {
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  .wordmark {
+    margin: 0;
+    font-weight: 700;
+    font-size: clamp(0.95rem, 3.6vw, 1.25rem);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .strapline {
+    margin: 0;
+    font-size: clamp(0.7rem, 2.4vw, 0.85rem);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+  }
+
+  .ticker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--ink-2);
+    transition: color 0.15s;
+  }
+
+  .ticker:hover {
+    color: var(--ink-1);
+  }
+
+  .dot {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background: var(--accent-magenta);
+  }
+
+  .cue {
+    position: absolute;
+    bottom: max(calc(var(--gutter) * 0.5), env(safe-area-inset-bottom));
+    display: block;
+    padding: 0.5rem;
+    line-height: 0;
+  }
+
+  .cue-art {
+    width: var(--cue);
+    height: auto;
+    fill: currentColor;
+    overflow: visible;
+  }
+
+  .cue-orb {
+    animation: cue-bob 5s ease-in-out infinite;
+  }
+
+  .cue-shadow,
+  .cue-ring {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  .cue-shadow {
+    opacity: 0.35;
+    animation: cue-ground 5s ease-in-out infinite;
+  }
+
+  .cue-ring {
+    fill: none;
+    /* The page's other accent, not currentColor: the orb stays white
+       (matching the ticker dot's pink), and the halos it sheds pick up
+       the cooler of the two accents so the pair reads as one small
+       deliberate accent moment instead of a flat monochrome icon. */
+    stroke: var(--accent-cyan);
+    stroke-width: 1;
+    opacity: 0;
+    animation: cue-lift 5s ease-out infinite;
+  }
+
+  .cue-spark {
+    opacity: 0;
+    animation: cue-spark 5s ease-in infinite;
+  }
+
+  @keyframes cue-bob {
+    0%,
+    100% {
+      transform: translateY(2px);
+    }
+    50% {
+      transform: translateY(-4px);
+    }
+  }
+
+  @keyframes cue-ground {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.35;
+    }
+    50% {
+      transform: scale(0.7);
+      opacity: 0.16;
+    }
+  }
+
+  @keyframes cue-lift {
+    0% {
+      transform: translateY(2px) scale(0.5);
+      opacity: 0;
+    }
+    22% {
+      opacity: 0.6;
+    }
+    100% {
+      transform: translateY(-26px) scale(1.35);
+      opacity: 0;
+    }
+  }
+
+  @keyframes cue-spark {
+    0% {
+      transform: translateY(0);
+      opacity: 0;
+    }
+    35% {
+      opacity: 0.55;
+    }
+    100% {
+      transform: translateY(-20px);
+      opacity: 0;
+    }
+  }
+
+  /* The global reduced-motion rule freezes every animation on its last frame,
+     which would leave the halos invisible. Hold them as a still composition. */
+  @media (prefers-reduced-motion: reduce) {
+    .cue-ring {
+      opacity: 0.4;
+    }
+
+    .cue-spark {
+      opacity: 0.5;
+    }
+  }
+</style>

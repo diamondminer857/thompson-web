@@ -1,0 +1,55 @@
+---
+import { site } from '../../site';
+---
+
+<section class="block" id="booking">
+  <p class="label reveal">Bookings</p>
+  <a class="full email reveal" href={`mailto:${site.bookingEmail}`}>{site.bookingEmail}</a>
+  <p class="who reveal">{site.realName} • {site.base}</p>
+</section>
+
+<style>
+  .label {
+    --label-accent: var(--accent-magenta);
+  }
+
+  /* A container query context, not another viewport-vw guess: `.email`'s
+     size below is a fraction of *this* box's actual rendered width — the
+     real number left over after the gutters on either side — rather than an
+     approximation of it. `container-type` now sits on `.block` itself
+     (a full-bleed grid), so `cqi` measures the whole section, not the old
+     34rem reading column; `.email` promoted to `.full` and the formula
+     below both account for that. */
+  #booking {
+    container-type: inline-size;
+  }
+
+  .email {
+    display: block;
+    padding-inline: var(--gutter);
+    font-family: var(--font-display);
+    font-weight: 700;
+    /* This font measures ~16.4x its own font-size for "contact@thompsondj.com";
+       dividing the available width (the container minus both gutters) by
+       that gives the size that exactly fills the band edge to edge. The
+       clamp bounds are outer guardrails, not the normal operating range. */
+    font-size: clamp(1rem, calc((100cqi - var(--gutter) * 2) / 16.4), 7rem);
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.25em;
+    transition: color 0.15s, text-decoration-color 0.15s;
+  }
+
+  .email:hover,
+  .email:focus-visible {
+    color: var(--accent-cyan-ink);
+    text-decoration-color: var(--accent-cyan-ink);
+  }
+
+  .who {
+    margin: 1rem 0 0;
+    font-size: var(--text-meta);
+    color: var(--ink-3);
+  }
+</style>

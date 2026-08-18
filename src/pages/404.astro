@@ -26,6 +26,7 @@ import { site } from '../site';
 
   p {
     margin: 0;
+    font-family: var(--font-display);
     font-weight: 700;
     font-size: clamp(1.5rem, 7vw, 2.25rem);
     letter-spacing: -0.02em;
@@ -34,9 +35,16 @@ import { site } from '../site';
 
   a {
     font-size: 0.75rem;
-    letter-spacing: 0.3em;
-    text-indent: 0.15em;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-indent: 0.07em;
     text-transform: uppercase;
     text-underline-offset: 0.4em;
+    transition: color 0.15s;
+  }
+
+  a:hover,
+  a:focus-visible {
+    color: var(--accent-cyan-ink);
   }
 </style>

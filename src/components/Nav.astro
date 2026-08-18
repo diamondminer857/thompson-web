@@ -1,0 +1,252 @@
+---
+import Logo from './Logo.astro';
+
+const links = [
+  { href: '#shows', label: 'Shows' },
+  { href: '#haven', label: 'Haven' },
+  { href: '#about', label: 'About' },
+  { href: '#press', label: 'Press' },
+  { href: '#booking', label: 'Book' },
+] as const;
+---
+
+<!--
+  Hidden over the hero (nothing should compete with the first screen), fades
+  in once the visitor has scrolled past it — see the IntersectionObserver at
+  the bottom of this file's <script>. Without JS the nav simply never
+  appears, which is fine: every link it holds is also reachable by scrolling,
+  so nothing is lost, only the shortcut.
+-->
+<nav class="nav" aria-label="Section">
+  <a class="mark" href="#top" aria-label="Back to top">
+    <Logo size="1.75rem" />
+  </a>
+
+  <ul class="links">
+    {links.map((link) => (
+      <li>
+        <a href={link.href}>{link.label}</a>
+      </li>
+    ))}
+  </ul>
+
+  <details class="disclosure">
+    <summary aria-label="Menu">Menu</summary>
+    <ul>
+      {links.map((link) => (
+        <li>
+          <a href={link.href}>{link.label}</a>
+        </li>
+      ))}
+    </ul>
+  </details>
+</nav>
+
+<style>
+  .nav {
+    /* Fixed, not sticky: sticky still reserves its own height in normal
+       flow even while faded out and translated above the viewport, which
+       pushed the hero down by that much — invisible on its own, but once
+       the page background carried a visible gradient (see global.css) that
+       gap became a hard seam right at the hero's top edge. Fixed removes
+       it from flow entirely; it only ever needs to sit pinned at the top,
+       never to scroll-then-stick. */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem var(--gutter);
+    background: color-mix(in srgb, var(--paper) 85%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--hairline);
+    opacity: 0;
+    transform: translateY(-100%);
+    transition:
+      opacity 0.3s ease,
+      transform 0.3s ease;
+  }
+
+  /* Toggled by this file's own script once the hero has scrolled out of
+     view — plain IntersectionObserver, not anime.js, so it keeps working
+     even when motion.ts bails out under prefers-reduced-motion. */
+  .nav.visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav {
+      position: static;
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .mark {
+    display: block;
+    line-height: 0;
+    opacity: 0.85;
+  }
+
+  .links {
+    display: none;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 1.75rem;
+  }
+
+  .links a {
+    position: relative;
+    display: inline-block;
+    padding-bottom: 0.35rem;
+    font-size: var(--text-micro);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--ink-3);
+    transition: color 0.15s;
+  }
+
+  .links a:hover,
+  .links a[aria-current] {
+    color: var(--ink-1);
+  }
+
+  /* Whichever section is on screen gets a hairline-thin duotone underline —
+     the one place in the nav that says "you are here" with colour instead
+     of just opacity. */
+  .links a::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1.5px;
+    background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.25s ease;
+  }
+
+  .links a[aria-current]::after {
+    transform: scaleX(1);
+  }
+
+  .disclosure {
+    position: relative;
+  }
+
+  .disclosure summary {
+    list-style: none;
+    font-size: var(--text-micro);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    cursor: pointer;
+  }
+
+  .disclosure summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .disclosure ul {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.75rem);
+    display: grid;
+    gap: 1rem;
+    margin: 0;
+    padding: 1.25rem 1.5rem;
+    list-style: none;
+    background: var(--paper-raised);
+    border: 1px solid var(--hairline);
+    white-space: nowrap;
+  }
+
+  .disclosure a {
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--ink-2);
+  }
+
+  @media (min-width: 40rem) {
+    .links {
+      display: flex;
+    }
+
+    .disclosure {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  // Scrollspy: mark the section currently on screen so the nav can highlight
+  // it. Pure DOM + IntersectionObserver — independent of motion.ts, so it
+  // still works when reduced-motion skips the animation library entirely.
+  const sections = [...document.querySelectorAll<HTMLElement>('main > section[id]')];
+  const navLinks = [...document.querySelectorAll<HTMLAnchorElement>('.nav a[href^="#"]')];
+
+  if (sections.length && navLinks.length && 'IntersectionObserver' in window) {
+    const setCurrent = (id: string) => {
+      navLinks.forEach((a) => {
+        if (a.getAttribute('href') === `#${id}`) a.setAttribute('aria-current', 'true');
+        else a.removeAttribute('aria-current');
+      });
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.find((entry) => entry.isIntersecting);
+        if (visible) setCurrent(visible.target.id);
+      },
+      { rootMargin: '-45% 0px -50% 0px' },
+    );
+
+    sections.forEach((section) => observer.observe(section));
+  }
+
+  // Show the bar only once the marquee ticker right after the hero has
+  // scrolled entirely above the viewport — not merely "the hero is mostly
+  // gone". Nav is `position: fixed` (see the style block above), so once
+  // visible it overlays whatever currently sits at the top of the page; a
+  // `-90%` top rootMargin (shrinking the observed root to its own bottom
+  // 10%) fires as soon as a target's *trailing* edge passes a point fairly
+  // close to the bottom of the viewport, which happens after only ~90–135px
+  // of scroll regardless of which element is observed — nowhere near
+  // enough for the marquee (sitting right after a 100svh hero) to have
+  // actually scrolled away. The bar was fading in while the marquee, and
+  // sometimes the Shows section's own top hairline just past it, were still
+  // on screen, overlaying both. `entry.boundingClientRect.top < 0` is the
+  // one condition that actually means "scrolled up and gone" rather than
+  // "hasn't been scrolled to yet" (both give `isIntersecting: false`, so
+  // that alone can't tell them apart). Plain IntersectionObserver rather
+  // than anime.js's onScroll, deliberately: this is navigation, not
+  // decoration, so it has to keep working even when motion.ts bails out
+  // under prefers-reduced-motion.
+  const nav = document.querySelector<HTMLElement>('.nav');
+  const marquee = document.querySelector<HTMLElement>('.marquee') ?? document.getElementById('top');
+
+  if (nav && marquee && 'IntersectionObserver' in window) {
+    const heroObserver = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) nav.classList.remove('visible');
+        else if (entry.boundingClientRect.top < 0) nav.classList.add('visible');
+      },
+      { threshold: 0 },
+    );
+
+    heroObserver.observe(marquee);
+  }
+</script>

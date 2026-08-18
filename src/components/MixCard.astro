@@ -1,0 +1,88 @@
+---
+interface Props {
+  label: string;
+  number: string;
+  feed: string;
+  /** The latest episode gets the big number; older ones in the list are
+   * compact. The "full series" link lives once at the section level
+   * (`Haven.astro`), not per-card, so this component has no opinion about
+   * where the series lives — it just plays one episode. */
+  featured?: boolean;
+}
+const { label, number, feed, featured = false } = Astro.props;
+---
+
+<article class:list={['mix-card', { featured }, 'reveal']} data-feed={feed}>
+  {featured && <p class="episode">#{number}</p>}
+
+  <div class="player">
+    <button type="button" class="play">
+      <svg viewBox="0 0 24 24" aria-hidden="true" width={featured ? 18 : 14} height={featured ? 18 : 14}>
+        <path d="M6 3.5 20.5 12 6 20.5Z" fill="currentColor" />
+      </svg>
+      <span>{featured ? 'Play latest episode' : `${label} #${number}`}</span>
+    </button>
+  </div>
+</article>
+
+<style>
+  /* Outline type, not filled — the most flyer-native move available for a
+     number this size, and it costs nothing beyond a colour fallback for
+     browsers without `-webkit-text-stroke`. */
+  .mix-card.featured .episode {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(4rem, 20vw, 12rem);
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+    color: transparent;
+    -webkit-text-stroke: 2px var(--accent-magenta);
+  }
+
+  @supports not (-webkit-text-stroke: 1px red) {
+    .mix-card.featured .episode {
+      color: var(--accent-magenta-ink);
+    }
+  }
+
+  .player {
+    min-height: 3.5rem;
+    display: grid;
+  }
+
+  .mix-card:not(.featured) .play {
+    padding: 0.85rem 1.25rem;
+    font-size: var(--text-micro);
+  }
+</style>
+
+<script>
+  /* One script, every card: each Mixcloud iframe is a third-party embed that
+     sets cookies and costs a few hundred kB, so it loads only when its own
+     card's button is clicked — never on page load, never for a card the
+     visitor didn't ask about. */
+  const isDark = () => document.documentElement.dataset.theme !== 'light';
+
+  document.querySelectorAll<HTMLElement>('.mix-card').forEach((card) => {
+    const button = card.querySelector('button');
+    const host = card.querySelector<HTMLElement>('.player');
+
+    button?.addEventListener('click', () => {
+      const feed = card.dataset.feed!;
+
+      const frame = document.createElement('iframe');
+      frame.src =
+        'https://player-widget.mixcloud.com/widget/iframe/?hide_cover=1&autoplay=1' +
+        `&light=${isDark() ? 0 : 1}&feed=${encodeURIComponent(feed)}`;
+      frame.width = '100%';
+      frame.height = '120';
+      frame.loading = 'lazy';
+      frame.allow = 'autoplay; encrypted-media';
+      frame.title = `${card.querySelector('span')?.textContent ?? 'Mixcloud'} player`;
+      frame.style.border = '0';
+
+      host!.replaceChildren(frame);
+    });
+  });
+</script>

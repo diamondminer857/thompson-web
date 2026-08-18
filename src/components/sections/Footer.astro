@@ -1,0 +1,203 @@
+---
+import Logo from '../Logo.astro';
+import { site } from '../../site';
+---
+
+<footer>
+  <Logo size="2rem" opacity={0.5} />
+
+  <ul class="links">
+    <li><a href={site.instagram} rel="me noopener">Instagram</a></li>
+    <li><a href={site.mixcloud} rel="me noopener">Mixcloud</a></li>
+  </ul>
+
+  <!--
+    Deliberately quiet, and deliberately the last thing on the page: dark is
+    the identity now (see README "Design notes"), and this is only here for
+    whoever wants the paper-and-ink page the poster promised.
+  -->
+  <button type="button" class="theme" aria-pressed="false">
+    <span class="theme-swatch" aria-hidden="true"></span>
+    <span>Light mode</span>
+  </button>
+</footer>
+
+<div class="theme-wipe" aria-hidden="true"></div>
+
+<style>
+  footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.75rem;
+    padding: clamp(3.5rem, 12vh, 7rem) var(--gutter) calc(var(--gutter) + env(safe-area-inset-bottom));
+    border-top: 1px solid transparent;
+    border-image: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--accent-cyan) 55%, transparent),
+        var(--hairline) 30%,
+        var(--hairline) 70%,
+        color-mix(in srgb, var(--accent-magenta) 55%, transparent)
+      )
+      1;
+  }
+
+  .links {
+    display: flex;
+    gap: 1.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .links a {
+    font-size: var(--text-micro);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--ink-3);
+    transition: color 0.15s;
+  }
+
+  .links a:hover,
+  .links a:focus-visible {
+    color: var(--accent-magenta-ink);
+  }
+
+  .theme {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.25rem;
+    font: inherit;
+    font-weight: 600;
+    font-size: var(--text-micro);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-4);
+    background: none;
+    border: 0;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+
+  .theme:hover,
+  .theme:focus-visible {
+    color: var(--ink-2);
+  }
+
+  /* Tracking leaves a gap after the last glyph. The label is a flex item, so
+     the text-indent trick used elsewhere does not apply — trim it directly. */
+  .theme > span:last-child {
+    margin-right: -0.14em;
+  }
+
+  .theme-swatch {
+    width: 0.7rem;
+    height: 0.7rem;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    /* Half-lit, and filled once light mode is on. */
+    background: linear-gradient(90deg, currentColor 50%, transparent 50%);
+    transition: background 0.2s;
+  }
+
+  .theme[aria-pressed='true'] .theme-swatch {
+    background: currentColor;
+  }
+
+  /* A 2px seed circle, grown from the toggle by `motion.ts`'s theme-flip
+     handler to cover the viewport before the palette actually switches
+     underneath it — see the script below. Never sized or positioned by CSS;
+     JS computes both fresh on every click, since they depend on where the
+     button is and how far the nearest corner is. */
+  .theme-wipe {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 300;
+    width: 2px;
+    height: 2px;
+    margin: -1px 0 0 -1px;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0);
+  }
+</style>
+
+<script>
+  import { animate } from 'animejs/animation';
+
+  const root = document.documentElement;
+  const isLight = () => root.dataset.theme === 'light';
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* Dark is the page by design and stays that way for everyone; this only
+     exists for the visitor who explicitly wants the poster's white. The
+     <head> script applies the stored choice before paint — this just keeps
+     the button and the browser chrome in step with it. */
+  const toggle = document.querySelector<HTMLButtonElement>('.theme');
+  const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  const wipe = document.querySelector<HTMLElement>('.theme-wipe');
+
+  const syncTheme = () => {
+    toggle?.setAttribute('aria-pressed', String(isLight()));
+    if (themeColor) themeColor.content = isLight() ? '#ffffff' : '#0a0a0a';
+  };
+
+  syncTheme();
+
+  const flipTheme = () => {
+    if (isLight()) delete root.dataset.theme;
+    else root.dataset.theme = 'light';
+
+    // Private mode and blocked storage both throw here; the flip still works.
+    try {
+      localStorage.setItem('theme', isLight() ? 'light' : 'dark');
+    } catch {}
+
+    syncTheme();
+  };
+
+  toggle?.addEventListener('click', () => {
+    // The palette *after* the click, i.e. the colour the wipe should carry —
+    // read before `flipTheme()` mutates `isLight()`'s answer.
+    const nextPaper = isLight() ? '#0a0a0a' : '#fff';
+
+    if (reduceMotion || !wipe) {
+      flipTheme();
+      return;
+    }
+
+    const rect = toggle.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    // Distance to the farthest corner, so the seed circle always fully
+    // covers the viewport regardless of where in it the toggle sits.
+    const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+
+    wipe.style.left = `${x}px`;
+    wipe.style.top = `${y}px`;
+    wipe.style.background = nextPaper;
+    wipe.style.opacity = '1';
+
+    // Grows past a flat circle-to-cover-viewport scale so the flood clears
+    // every corner with room to spare, not just tangent to the nearest edge.
+    animate(wipe, {
+      scale: [0, radius + 4],
+      duration: 560,
+      ease: 'inOutExpo',
+      onComplete: () => {
+        // The seed circle already matches the incoming palette exactly, so
+        // flipping the real theme now — and hiding the circle in the same
+        // tick — is invisible: what's underneath already equals what's on
+        // top.
+        flipTheme();
+        wipe.style.opacity = '0';
+        wipe.style.transform = 'scale(0)';
+      },
+    });
+  });
+</script>

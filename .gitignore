@@ -25,3 +25,6 @@ pnpm-debug.log*
 
 # wrangler
 .wrangler/
+
+# generated Haven mix artwork (scripts/haven-art) — regenerate on demand
+scripts/haven-art/output/

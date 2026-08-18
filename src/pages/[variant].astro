@@ -4,16 +4,20 @@ import Site from '../components/Site.astro';
 import { posterVariants } from '../site';
 
 /**
- * /p1, /p2, … — one real page per poster, identical content. The QR on each
- * poster points at its own path, so Cloudflare Web Analytics shows which line
- * actually gets scanned. They carry noindex + a canonical to "/" so search
- * engines see a single page.
+ * /p1, /p2, … — one real page per poster, near-identical content. The QR on
+ * each poster points at its own path, so Cloudflare Web Analytics shows which
+ * line actually gets scanned. They carry noindex + a canonical to "/" so
+ * search engines see a single page. The one difference: each poster prints
+ * its own line, and the page a scan lands on echoes it back as the hero
+ * headline instead of the site default — see `note` in `posterVariants`.
  */
 export function getStaticPaths() {
-  return posterVariants.map(({ slug }) => ({ params: { variant: slug } }));
+  return posterVariants.map(({ slug, note }) => ({ params: { variant: slug }, props: { headline: note } }));
 }
+
+const { headline } = Astro.props;
 ---
 
 <Base noindex>
-  <Site />
+  <Site headline={headline} />
 </Base>

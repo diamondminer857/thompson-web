@@ -1,0 +1,93 @@
+---
+import MixCard from '../MixCard.astro';
+import MediaFrame from '../MediaFrame.astro';
+import { mixes, site } from '../../site';
+
+const [latest, ...older] = mixes;
+---
+
+<section class="block" id="haven">
+  <p class="label reveal">{latest.label} — mix series</p>
+
+  <div class="wide layout">
+    <div class="numeral reveal">
+      <MixCard label={latest.label} number={latest.number} feed={latest.feed} featured />
+    </div>
+
+    <div class="art reveal">
+      <MediaFrame {...latest.artwork} />
+    </div>
+  </div>
+
+  {
+    older.length > 0 && (
+      <ul class="wide older">
+        {older.map((mix) => (
+          <li>
+            <MixCard label={mix.label} number={mix.number} feed={mix.feed} />
+          </li>
+        ))}
+      </ul>
+    )
+  }
+
+  <p class="note reveal">
+    Every month. <a href={site.mixcloud}>Full series on Mixcloud</a>.
+  </p>
+</section>
+
+<style>
+  .label {
+    --label-accent: var(--accent-magenta);
+  }
+
+  .layout {
+    display: grid;
+    gap: clamp(1.5rem, 4vw, 3rem);
+  }
+
+  .art {
+    max-width: 18rem;
+  }
+
+  @media (min-width: 45rem) {
+    .layout {
+      grid-template-columns: 1fr minmax(0, 18rem);
+      align-items: end;
+    }
+
+    .art {
+      max-width: none;
+      /* Let the artwork overhang the reading column into the wide track's
+         own margin — a small deliberate break from the grid it sits in. */
+      margin-right: calc(var(--gutter) * -0.5);
+    }
+  }
+
+  .older {
+    display: grid;
+    gap: 0.75rem;
+    margin: 1.75rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .note {
+    margin: 1.25rem 0 0;
+    font-size: var(--text-meta);
+    color: var(--ink-3);
+  }
+
+  .note a {
+    color: var(--ink-1);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.25em;
+    transition: color 0.15s, text-decoration-color 0.15s;
+  }
+
+  .note a:hover,
+  .note a:focus-visible {
+    color: var(--accent-cyan-ink);
+    text-decoration-color: var(--accent-cyan-ink);
+  }
+</style>

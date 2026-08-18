@@ -1,0 +1,153 @@
+---
+import { formatShort, formatWhen } from '../lib/dates';
+
+interface Props {
+  event: {
+    title: string;
+    start: string;
+    end: string;
+    place: string;
+    address: string;
+    url: string;
+    soldOut?: boolean;
+  };
+  /** The soonest show gets the full treatment — both buttons, the address,
+   * the long date. Everything after it is a single compact line. */
+  featured?: boolean;
+}
+const { event, featured = false } = Astro.props;
+---
+
+{
+  featured ? (
+    <article class="row featured reveal">
+      <time class="when" datetime={event.start}>
+        {formatWhen(event.start)}
+      </time>
+      <p class="title">{event.title}</p>
+      <p class="place">
+        {event.place} • {event.address}
+      </p>
+
+      <div class="actions">
+        <a class="btn" href={event.url} rel="noopener">
+          <span>{event.soldOut ? 'Sold out' : 'Event details'}</span>
+        </a>
+        <a class="btn btn-ghost" href="/event.ics">
+          <span>Add to calendar</span>
+        </a>
+      </div>
+    </article>
+  ) : (
+    <article class="row compact reveal">
+      <time class="date" datetime={event.start}>
+        {formatShort(event.start)}
+      </time>
+      <div class="meta">
+        <p class="title">{event.title}</p>
+        <p class="place">{event.place}</p>
+      </div>
+      <a class="link" href={event.url} rel="noopener">
+        {event.soldOut ? 'Sold out' : 'Details'}
+      </a>
+    </article>
+  )
+}
+
+<style>
+  .row {
+    padding-block: 1.25rem;
+    border-top: 1px solid var(--hairline);
+  }
+
+  .featured {
+    padding-block: 0;
+    border-top: 0;
+  }
+
+  .when {
+    display: block;
+    margin-bottom: 0.6rem;
+    font-size: var(--text-meta);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    /* The `-ink` variant, not the raw accent: this is small text, and the
+       raw saturated cyan is close to illegible on the light-mode paper. */
+    color: var(--accent-cyan-ink);
+  }
+
+  .featured .title {
+    margin: 0 0 0.5rem;
+    font-family: var(--font-display);
+    font-weight: 700;
+    /* The page's biggest type moment outside the hero — the flyer's headline
+       act, not a card title. */
+    font-size: clamp(2.25rem, 9vw, 4.5rem);
+    line-height: 0.98;
+    letter-spacing: -0.02em;
+    color: var(--ink-1);
+    text-wrap: balance;
+  }
+
+  .featured .place {
+    margin: 0 0 1.75rem;
+    font-size: var(--text-meta);
+    font-weight: 400;
+    color: var(--ink-3);
+  }
+
+  .actions {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  @media (min-width: 30rem) {
+    .actions {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .compact {
+    display: grid;
+    grid-template-columns: 4.5rem 1fr auto;
+    align-items: baseline;
+    gap: 1rem;
+  }
+
+  .compact .date {
+    font-size: var(--text-meta);
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    color: var(--ink-3);
+  }
+
+  .compact .title {
+    margin: 0;
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: -0.01em;
+    color: var(--ink-1);
+  }
+
+  .compact .place {
+    margin: 0.15rem 0 0;
+    font-size: var(--text-meta);
+    font-weight: 400;
+    color: var(--ink-3);
+  }
+
+  .compact .link {
+    font-size: var(--text-micro);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-underline-offset: 0.3em;
+    color: var(--ink-3);
+    transition: color 0.15s;
+  }
+
+  .compact .link:hover,
+  .compact .link:focus-visible {
+    color: var(--accent-magenta-ink);
+  }
+</style>

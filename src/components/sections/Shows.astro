@@ -1,0 +1,84 @@
+---
+import EventRow from '../EventRow.astro';
+import MediaFrame from '../MediaFrame.astro';
+import { events } from '../../site';
+
+// Same rule as the hero ticker and /event.ics: a show that has already ended
+// drops off the page on the next build rather than needing to be remembered.
+const upcoming = events
+  .filter((event) => new Date(event.end) > new Date())
+  .sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+
+const [featured, ...rest] = upcoming;
+---
+
+{
+  featured && (
+    <section class="block" id="shows">
+      <p class="label reveal">Shows</p>
+
+      <div class="wide feature">
+        <div class="detail">
+          <EventRow event={featured} featured />
+        </div>
+
+        {featured.poster && (
+          <div class="flyer reveal">
+            <MediaFrame {...featured.poster} />
+          </div>
+        )}
+      </div>
+
+      {rest.length > 0 && (
+        <div class="wide rest">
+          {rest.map((event) => (
+            <EventRow event={event} />
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+<style>
+  .label {
+    --label-accent: var(--accent-cyan);
+  }
+
+  .feature {
+    display: grid;
+    gap: clamp(2rem, 5vw, 4rem);
+  }
+
+  .rest {
+    margin-top: 1.75rem;
+  }
+
+  /* The same offset accent block About's portrait uses — one flyer
+     language reused instead of a second graphic idiom. */
+  .flyer {
+    position: relative;
+    isolation: isolate;
+    max-width: 16rem;
+  }
+
+  .flyer::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    transform: translate(0.9rem, 0.9rem);
+    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+  }
+
+  @media (min-width: 60rem) {
+    .feature {
+      grid-template-columns: 1fr 15rem;
+      align-items: end;
+    }
+
+    .flyer {
+      max-width: none;
+    }
+  }
+</style>

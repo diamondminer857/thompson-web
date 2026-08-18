@@ -1,9 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000">
-  <style>
-    :root { --ink: #000; --paper: #fff; }
-    @media (prefers-color-scheme: dark) { :root { --ink: #fff; --paper: #000; } }
-  </style>
-  <path fill="var(--ink)" d="M182 0H818A182 182 0 0 1 1000 182V818A182 182 0 0 1 818 1000H182A182 182 0 0 1 0 818V182A182 182 0 0 1 182 0Z"/>
-  <path fill="var(--paper)" d="M219 221H781V783H219Z"/>
-  <path fill="var(--ink)" d="M273 323H392V442H273ZM608 323H727V442H608ZM288 643H374V673H624V643H710V684A78 78 0 0 1 632 762H366A78 78 0 0 1 288 684Z"/>
+  <!-- Dark is the identity now (see README "Design notes"), not a light
+       mode, so this — like the page — no longer follows prefers-color-scheme.
+       It's a fixed two-tone icon: ink mark, paper face. -->
+  <path fill="#fff" d="M182 0H818A182 182 0 0 1 1000 182V818A182 182 0 0 1 818 1000H182A182 182 0 0 1 0 818V182A182 182 0 0 1 182 0Z"/>
+  <path fill="#0a0a0a" d="M219 221H781V783H219Z"/>
+  <path fill="#fff" d="M273 323H392V442H273ZM608 323H727V442H608ZM288 643H374V673H624V643H710V684A78 78 0 0 1 632 762H366A78 78 0 0 1 288 684Z"/>
 </svg>

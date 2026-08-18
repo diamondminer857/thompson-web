@@ -1,0 +1,307 @@
+/*
+ * Design tokens and the handful of rules every section shares. Section-
+ * specific layout stays scoped inside its own component; this file only
+ * holds what would otherwise be copy-pasted five times.
+ */
+
+:root {
+  /* Dark is now the identity — see README "Design notes". The inversion
+     property is unchanged from the original white page: exactly two neutrals,
+     swapped wholesale by `data-theme`, nothing in between except opacity and
+     color-mix derivations of `--ink` itself — plus two fixed accent hues
+     (below), which don't invert since they're small deliberate touches, not
+     a second surface. */
+  --paper: #0a0a0a;
+  --ink: #fff;
+  color-scheme: dark;
+
+  /* Not pure black: a video loop needs a floor a shade above its own darkest
+     frame or the frame edge shows as a hard seam, and raised surfaces (cards,
+     the nav bar) need something to lift off of without introducing a second
+     hue. Both are derived from --ink so they still invert for free. */
+  --paper-raised: color-mix(in srgb, var(--ink) 6%, var(--paper));
+  --hairline: color-mix(in srgb, var(--ink) 15%, transparent);
+
+  /* Text hierarchy as real colour, not opacity. Opacity has no shared scale
+     (twenty ad-hoc values used to be scattered across the codebase), it
+     composites against whatever happens to sit behind an element rather than
+     against the paper, and it creates a group a descendant can never opt back
+     out of — `Press.astro`'s "on request" link used to try exactly that and
+     silently fail. Each step is a `color-mix` of `--ink` toward `--paper`, so
+     the whole scale still inverts for free under `[data-theme='light']` and
+     the page stays strictly two neutrals plus accents, per the design notes
+     in the README. `--ink-1` (100%) is reserved for real emphasis — display
+     headlines, hovers, the active nav link — so body copy at `--ink-2` reads
+     as intentional prose rather than the disabled-looking default. */
+  --ink-1: var(--ink);
+  --ink-2: color-mix(in srgb, var(--ink) 92%, var(--paper));
+  --ink-3: color-mix(in srgb, var(--ink) 72%, var(--paper));
+  --ink-4: color-mix(in srgb, var(--ink) 46%, var(--paper));
+
+  /* The hero laser palette (see Hero.astro), promoted to page-wide tokens —
+     saturated club colour instead of the desaturated pastel this page used
+     to run on. */
+  --accent-cyan: #5be3ff;
+  --accent-magenta: #ff5fc0;
+  --accent-violet: #b489ff;
+
+  /* Text/outline-safe variants: the graphic hues above are near-white in
+     luminance, which is illegible as small text or an outline on the light
+     paper. Identical to the graphic hue in dark mode; overridden to a darker
+     shade under `[data-theme='light']` below. */
+  --accent-cyan-ink: var(--accent-cyan);
+  --accent-magenta-ink: var(--accent-magenta);
+
+  --gutter: clamp(1.5rem, 6vw, 4rem);
+
+  /* A five-step size scale so body copy finally has a real ~16–18px reading
+     tier — previously every size on the page was either display-scale
+     (1.05rem+) or micro-scale (0.65–0.85rem), with nothing in between. */
+  --text-micro: 0.7rem;
+  --text-meta: 0.8125rem;
+  --text-body: clamp(1rem, 0.96rem + 0.22vw, 1.125rem);
+  --text-lede: clamp(1.3rem, 1.05rem + 1.1vw, 1.9rem);
+  --text-display: clamp(2.5rem, 1.2rem + 6vw, 6rem);
+}
+
+/* The opt-in negative — see the pre-paint script in Base.astro. Poster
+   readers who want the paper-and-ink page they scanned can still have it. */
+:root[data-theme='light'] {
+  --paper: #fff;
+  --ink: #000;
+  color-scheme: light;
+  --accent-cyan-ink: #0b6a86;
+  --accent-magenta-ink: #a8156a;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  /* The hero's scroll cue and the nav are in-page anchors. */
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  /* Two fixed glows, not a scrolling tile: they sit in the viewport corners
+     like the hero's own aura and stay there as the page scrolls past, so
+     every section gets a hint of the same coloured light instead of it
+     being a hero-only effect. `--paper` is the real (theme-aware) base
+     layer underneath both. */
+  background:
+    radial-gradient(50% 40% at 8% 4%, color-mix(in srgb, var(--accent-cyan) 11%, transparent) 0%, transparent 68%),
+    radial-gradient(42% 36% at 92% 70%, color-mix(in srgb, var(--accent-magenta) 12%, transparent) 0%, transparent 70%),
+    var(--paper);
+  background-repeat: no-repeat, no-repeat, repeat;
+  background-attachment: fixed, fixed, scroll;
+  /* Body copy sits at --ink-2 (92%), not full --ink — see the token comment
+     above. --ink-1 stays available as the emphasis step for headlines and
+     hovers instead of being the only strength on offer. */
+  color: var(--ink-2);
+  /* The workhorse face — everything except the handful of "big moment"
+     elements that opt into --font-display directly (see those components). */
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-weight: 400;
+  font-size: var(--text-body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* Flipping the theme should feel like a dimmer, not a light switch. */
+  transition:
+    background-color 0.4s ease,
+    color 0.4s ease;
+}
+
+a {
+  color: inherit;
+}
+
+::selection {
+  background: var(--accent-cyan);
+  /* Hardcoded, not `var(--paper)`: selection must stay a dark foreground on
+     the bright cyan fill in both themes, or Light mode selection would
+     render as near-white-on-cyan. */
+  color: #0a0a0a;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-cyan-ink);
+  outline-offset: 4px;
+}
+
+/* --- shared section chrome --- */
+
+/* Every section used to be the same centred 34rem column, eight times in a
+   row — the single strongest "generic template" tell on the page. `.block`
+   is now a full-bleed grid with three named tracks (`full`, `wide`, and the
+   `main` reading column, which is the default for any direct child); a
+   section opts a child wider with one class instead of the whole page being
+   pinned to one measure. */
+.block {
+  --measure: 36rem;
+  --wide: 68rem;
+
+  position: relative;
+  display: grid;
+  padding-block: clamp(4.5rem, 15vh, 9rem);
+  grid-template-columns:
+    [full-start] minmax(var(--gutter), 1fr)
+    [wide-start] minmax(0, calc((var(--wide) - var(--measure)) / 2))
+    [main-start] min(var(--measure), 100% - var(--gutter) * 2) [main-end]
+    minmax(0, calc((var(--wide) - var(--measure)) / 2)) [wide-end]
+    minmax(var(--gutter), 1fr) [full-end];
+}
+
+.block > * {
+  grid-column: main;
+}
+
+.block > .wide {
+  grid-column: wide;
+}
+
+.block > .full {
+  grid-column: full;
+}
+
+/* Compat shim for sections not yet migrated to a `.wide`/`.full` child —
+   widens the whole reading column instead. */
+.block-wide {
+  --measure: var(--wide);
+}
+
+/* Every section boundary carries a whisper of both accents at its edges,
+   fading back to the plain neutral hairline toward the middle — the duotone
+   shows up as a rhythm every time you scroll past one, not just in the hero
+   or on a hover. `.block` is full-width now, so this is a plain edge-to-edge
+   line; `position: absolute` is what keeps it from being auto-placed as a
+   grid item in its own right. */
+.block::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent-cyan) 70%, transparent),
+    var(--hairline) 28%,
+    var(--hairline) 72%,
+    color-mix(in srgb, var(--accent-magenta) 70%, transparent)
+  );
+}
+
+/* A printer's slug, not a UI badge — a hard accent rule ahead of heavily
+   tracked caps, no box. `--label-accent` still picks which hue (each section
+   sets it once, rotating down the page across all three accents now rather
+   than alternating two); unset anywhere else, it falls back to cyan. */
+.label {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin: 0 0 clamp(1.5rem, 4vw, 2.5rem);
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-indent: 0.28em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.label::before {
+  content: '';
+  flex: none;
+  width: clamp(1.75rem, 6vw, 3.5rem);
+  height: 2px;
+  background: var(--label-accent, var(--accent-cyan));
+  box-shadow: 0 0 10px -2px var(--label-accent, var(--accent-cyan));
+}
+
+.play,
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 1.25rem;
+  font: inherit;
+  font-weight: 600;
+  font-size: var(--text-micro);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--paper);
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  cursor: pointer;
+  transition: opacity 0.15s, box-shadow 0.2s;
+}
+
+.play:hover,
+.btn:hover {
+  opacity: 0.82;
+}
+
+/* The one glow on the page — every primary action (event details, add to
+   calendar, play latest episode) shares it, so it reads as one consistent
+   affordance rather than a per-section accent. */
+.play:hover,
+.btn:hover,
+.play:focus-visible,
+.btn:focus-visible {
+  box-shadow:
+    -6px 6px 28px -14px var(--accent-cyan),
+    6px -6px 28px -14px var(--accent-magenta);
+}
+
+.btn-ghost {
+  color: var(--ink);
+  background: none;
+  border-color: color-mix(in srgb, var(--accent-cyan) 20%, var(--ink) 80%);
+}
+
+.btn-ghost:hover,
+.btn-ghost:focus-visible {
+  border-color: color-mix(in srgb, var(--accent-cyan) 45%, var(--ink) 55%);
+}
+
+/* Letter-spacing adds a trailing gap after the last glyph, which drags a
+   centred flex label half a step left of centre. Trim it back. */
+.play span,
+.btn span {
+  margin-right: -0.1em;
+}
+
+/* Same fix for a plain (non-flex) centred line of tracked text: an indent
+   equal to half the tracking recentres it, because CSS only adds the gap
+   after the final glyph, not before the first. */
+.tracked-center {
+  text-indent: 0.09em;
+}
+
+/* --- reveal targets for src/scripts/motion.ts ---
+   The JS sets the from-state itself the instant it runs, so a target here
+   never depends on CSS starting it hidden — if the script fails to load,
+   the page is simply static, never blank. */
+.reveal {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,89 @@
+---
+import { formatShort } from '../lib/dates';
+import { nextEvent, site } from '../site';
+
+/**
+ * A scrolling ticker band between the hero and the rest of the page — flyer
+ * tape, not a second nav. Pure CSS `@keyframes`, no anime.js: the loop never
+ * needs to start, stop, or react to anything, so there's nothing a script
+ * would add except risk. The one thing that *does* need JS-level care —
+ * `prefers-reduced-motion` — is already handled for free by the blanket
+ * `animation-duration` freeze at the bottom of `global.css`, which this
+ * inherits like every other CSS-only loop on the page (`.cue-orb`,
+ * `.backdrop`).
+ */
+const parts = [
+  `${site.name} — ${site.strapline}`,
+  nextEvent ? `Next: ${formatShort(nextEvent.start)} • ${nextEvent.place}` : null,
+  'Bookings open',
+  'Haven — new mix, every month',
+].filter((part): part is string => Boolean(part));
+---
+
+<div class="marquee" aria-hidden="true">
+  <div class="track">
+    {
+      [0, 1].map((copy) => (
+        <ul class="items" data-copy={copy}>
+          {parts.map((part) => (
+            <li>{part}</li>
+          ))}
+        </ul>
+      ))
+    }
+  </div>
+</div>
+
+<style>
+  .marquee {
+    overflow: hidden;
+    background: var(--paper-raised);
+    border-block: 1px solid var(--hairline);
+  }
+
+  .track {
+    display: flex;
+    width: max-content;
+    /* Two identical copies of `.items` back to back, translated exactly one
+       copy's width per loop (-50% of the combined track) — the copy that
+       just left the left edge is always the one about to enter the right, so
+       the seam never shows. */
+    animation: marquee-scroll 18s linear infinite;
+  }
+
+  .items {
+    display: flex;
+    align-items: center;
+    gap: 3.5rem;
+    margin: 0;
+    padding: 1.1rem 1.25rem;
+    list-style: none;
+    white-space: nowrap;
+  }
+
+  /* Set in the display face at display weight — this was 0.7rem tape nobody
+     could actually read; it's the first thing after the hero and should
+     carry some of its own weight instead of vanishing into the ticker. */
+  .items li {
+    display: flex;
+    align-items: center;
+    gap: 3.5rem;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(0.95rem, 3.2vw, 1.6rem);
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+  }
+
+  .items li::after {
+    content: '/';
+    color: var(--accent-cyan);
+  }
+
+  @keyframes marquee-scroll {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+</style>

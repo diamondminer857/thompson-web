@@ -1,0 +1,49 @@
+---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+import Placeholder from './Placeholder.astro';
+
+/**
+ * Renders a photo when one exists, a `Placeholder` when it doesn't. Every
+ * caller supplies `ratio` regardless of which branch runs, so a placeholder
+ * being swapped for a real file never reflows the page around it.
+ *
+ * `src` is a static `import` from `src/assets/photos/` (see `site.ts`), never
+ * a plain string or a `public/` path — `astro:assets`'s `<Image>` needs that
+ * import to resize/compress at build time, which is the whole reason real
+ * photos live under `src/assets/` rather than `public/`.
+ */
+interface Props {
+  src: ImageMetadata | null;
+  alt: string;
+  ratio: `${number} / ${number}`;
+  path?: string;
+  tone?: 'cyan' | 'magenta' | 'violet';
+  class?: string;
+}
+const { src, alt, ratio, path, tone, class: className } = Astro.props;
+---
+
+{
+  src ? (
+    <Image class:list={['frame-img', className]} src={src} alt={alt} style={{ aspectRatio: ratio }} loading="lazy" decoding="async" />
+  ) : (
+    <Placeholder ratio={ratio} label={alt} path={path ?? 'src/assets/photos/…'} tone={tone} class={className} />
+  )
+}
+
+<style>
+  /* `:global` because `<Image>` is a child component — Astro's scope
+     attribute is only added to elements authored directly in this file's
+     own template, not to the <img> a child component renders (see the same
+     note on Logo.astro). Scoped to `.frame-img` rather than a bare `img`
+     selector so this can't leak onto unrelated <img> elements elsewhere on
+     the page (the hero's poster frame, for one). */
+  :global(.frame-img) {
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    background: var(--paper-raised);
+  }
+</style>

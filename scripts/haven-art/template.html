@@ -1,0 +1,240 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <!-- Same two faces the site itself loads (see astro.config.mjs): Unbounded
+         for the big display moment, Space Grotesk for everything small and
+         tracked. Pulled from Google Fonts at generation time rather than
+         self-hosted — this script only ever runs locally, not in the
+         browser, so there's no visitor paying for the request. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Space+Grotesk:wght@600;700&display=block"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        /* The site's own tokens (src/styles/global.css) — kept in sync by
+           hand since this file can't import CSS from the Astro project. */
+        --paper: #0a0a0a;
+        --ink: #fff;
+        --ink-3: color-mix(in srgb, var(--ink) 72%, var(--paper));
+        --accent-cyan: #5be3ff;
+        --accent-magenta: #ff5fc0;
+        --accent-violet: #b489ff;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 1400px;
+        height: 1400px;
+        overflow: hidden;
+      }
+
+      body {
+        position: relative;
+        isolation: isolate;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        padding: 90px;
+        background: var(--paper);
+        font-family: 'Space Grotesk', system-ui, sans-serif;
+      }
+
+      /* --- the photo, faded in from black rather than dropped in as a flat
+         rectangle: a mask hides only a thin strip at the very top (room for
+         the logo/label to sit on pure black) and ramps to fully opaque by
+         ~38%, so a face positioned high in the source frame still lands
+         inside the visible zone instead of being hidden in the fade. The
+         mask sits on the wrapper, not the image itself, so the grain/wash
+         layers below fade out in step with the photo instead of leaving a
+         hard-edged tint behind.
+         Deliberately just one photo layer, not a blurred backdrop + a
+         content-shaped sharp cutout: an earlier version here hid a specific
+         background object in one specific source photo by hand-measuring a
+         mask polygon against its exact silhouette (see git history if that
+         "vignette" treatment is ever wanted again for a photo that needs
+         it) — real, but useless the moment a different photo goes in
+         `--photo`, since the shape was tuned to that one image's content.
+         This version works the same for whatever photo is dropped in. */
+      .photo-frame {
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        -webkit-mask-image: linear-gradient(to bottom, transparent 0%, transparent 8%, black 38%, black 100%);
+        mask-image: linear-gradient(to bottom, transparent 0%, transparent 8%, black 38%, black 100%);
+      }
+
+      .photo {
+        position: absolute;
+        inset: 0;
+        background-image: var(--photo-url);
+        background-size: cover;
+        /* Anchored high in the source photo by default, so a face near the
+           top of the frame lands inside the visible zone above rather than
+           in the faded strip — see generate.mjs's --position flag to
+           override per photo.
+           No CSS filter/wash/vignette here on purpose — grading is done by
+           hand in Lightroom before the photo ever reaches this script (see
+           the Lightroom recipe in conversation for the exact values that
+           reproduce the look this used to apply automatically: grayscale +
+           contrast + a cyan/magenta split tone + a vignette). Baking a look
+           in twice would just fight whatever was already done to the file. */
+        background-position: center 8%;
+      }
+
+      /* Extra darkening behind the numeral specifically, so the
+         gradient-filled glyphs stay legible over whatever the photo is
+         doing right there — same idea as `.bottom-scrim` protecting the
+         wordmark below. */
+      .numeral-scrim {
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background: radial-gradient(ellipse 72% 36% at 50% 46%, rgba(0, 0, 0, 0.6), transparent 85%);
+      }
+
+      /* Extra darkening low in the frame purely so the wordmark below stays
+         legible over whatever is happening in the photo at that point. */
+      .bottom-scrim {
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.78) 0%, transparent 42%);
+      }
+
+      /* The Thompson mark (same path as src/components/Logo.astro) in the
+         same corner the site's own nav bar keeps it. */
+      .mark {
+        position: absolute;
+        top: 90px;
+        left: 90px;
+        width: 110px;
+        color: var(--ink);
+      }
+
+      .mark svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .label {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        font-size: 26px;
+        font-weight: 600;
+        letter-spacing: 0.28em;
+        text-indent: 0.28em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+      }
+
+      .label::before {
+        content: '';
+        width: 70px;
+        height: 4px;
+        background: var(--accent-cyan);
+        box-shadow: 0 0 16px -2px var(--accent-cyan);
+      }
+
+      .numeral {
+        position: relative;
+        width: 100%;
+        font-family: 'Unbounded', sans-serif;
+        font-weight: 800;
+        /* Unbounded is wide even at 800 — "#003" at any three-digit episode
+           number needs to fit inside the 1220px available width (1400
+           canvas minus the 90px side padding twice) with room to spare. */
+        font-size: 300px;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        text-align: center;
+        white-space: nowrap;
+      }
+
+      /* Solid fill, deliberately — not the outline treatment the website
+         uses at hero size. Mixcloud shows this artwork as a small feed/embed
+         thumbnail most of the time, and a thin stroke disappears at that
+         size; a filled gradient shape holds up at any size. */
+      .numeral.solid {
+        background: linear-gradient(135deg, var(--accent-cyan), var(--accent-magenta));
+        background-clip: text;
+        -webkit-background-clip: text;
+        color: transparent;
+      }
+
+      /* Kept for parity with the website's own MixCard treatment, in case
+         this artwork is ever viewed large enough for it to hold up (e.g.
+         reused as the site's own Haven artwork rather than just uploaded to
+         Mixcloud). */
+      .numeral.outline {
+        color: transparent;
+        -webkit-text-stroke: 5px var(--accent-magenta);
+      }
+
+      .footer {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .rule {
+        width: 110px;
+        height: 3px;
+        background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
+      }
+
+      .wordmark {
+        font-weight: 700;
+        font-size: 34px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--ink);
+      }
+
+      .strapline {
+        font-size: 20px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="photo-frame">
+      <div class="photo"></div>
+    </div>
+    <div class="numeral-scrim"></div>
+    <div class="bottom-scrim"></div>
+
+    <div class="mark">
+      <svg viewBox="0 0 1000 1000" fill="currentColor" fill-rule="evenodd" role="img" aria-label="Thompson">
+        <path
+          d="M182 0H818A182 182 0 0 1 1000 182V818A182 182 0 0 1 818 1000H182A182 182 0 0 1 0 818V182A182 182 0 0 1 182 0ZM219 221H781V783H219ZM273 323H392V442H273ZM608 323H727V442H608ZM288 643H374V673H624V643H710V684A78 78 0 0 1 632 762H366A78 78 0 0 1 288 684Z"
+        />
+      </svg>
+    </div>
+
+    <p class="label">{{LABEL}} — mix series</p>
+    <p class="numeral {{STYLE}}">#{{NUMBER}}</p>
+    <div class="footer">
+      <div class="rule"></div>
+      <p class="wordmark">Thompson</p>
+      <p class="strapline">Trance &amp; Melodic Techno</p>
+    </div>
+  </body>
+</html>
