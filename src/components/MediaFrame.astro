@@ -2,6 +2,7 @@
 import { Image } from 'astro:assets';
 import type { ImageMetadata } from 'astro';
 import Placeholder from './Placeholder.astro';
+import { getLangFromUrl, useTranslations, type Key } from '../i18n';
 
 /**
  * Renders a photo when one exists, a `Placeholder` when it doesn't. Every
@@ -15,6 +16,7 @@ import Placeholder from './Placeholder.astro';
  */
 interface Props {
   src: ImageMetadata | null;
+  /** A `src/i18n/*.ts` key — see the `Media` interface in `site.ts`. */
   alt: string;
   ratio: `${number} / ${number}`;
   path?: string;
@@ -22,13 +24,16 @@ interface Props {
   class?: string;
 }
 const { src, alt, ratio, path, tone, class: className } = Astro.props;
+
+const t = useTranslations(getLangFromUrl(Astro.url));
+const resolvedAlt = t(alt as Key);
 ---
 
 {
   src ? (
-    <Image class:list={['frame-img', className]} src={src} alt={alt} style={{ aspectRatio: ratio }} loading="lazy" decoding="async" />
+    <Image class:list={['frame-img', className]} src={src} alt={resolvedAlt} style={{ aspectRatio: ratio }} loading="lazy" decoding="async" />
   ) : (
-    <Placeholder ratio={ratio} label={alt} path={path ?? 'src/assets/photos/…'} tone={tone} class={className} />
+    <Placeholder ratio={ratio} label={resolvedAlt} path={path ?? 'src/assets/photos/…'} tone={tone} class={className} />
   )
 }
 

@@ -18,6 +18,6 @@ export function getStaticPaths() {
 const { headline } = Astro.props;
 ---
 
-<Base noindex>
-  <Site headline={headline} />
+<Base noindex canonicalPath="/">
+  <Site headline={headline} showLangToggle={false} />
 </Base>

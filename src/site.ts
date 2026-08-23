@@ -14,10 +14,17 @@ import haven003Artwork from './assets/photos/haven-003.jpg';
 export const site = {
   name: 'THOMPSON',
   realName: 'Tomáš Holinka',
-  base: 'Krnov, CZ',
+
+  /** Genre/brand terms — deliberately the same on both language versions
+   * (see the "keep scene terms in English" call for the Czech build), so
+   * these live here rather than in `src/i18n/*.ts`. `base` is the one field
+   * that does still vary (Krnov, CZ / Krnov, ČR) — see `site.base` in the
+   * dictionaries. */
   strapline: 'Trance & Melodic Techno',
 
-  /** The one line on the landing screen. */
+  /** The one line on the landing screen. Also kept English on the Czech
+   * page: "haven" is the mix series' own name, not a generic word — a
+   * translation would break that link. */
   headline: 'Find your haven.',
 
   instagram: 'https://instagram.com/thompson__dj',
@@ -27,15 +34,9 @@ export const site = {
   bookingEmail: 'contact@thompsondj.com',
 } as const;
 
-export const bio = {
-  short: 'Trance and melodic techno from Krnov, built for rooms that want to lift.',
-  long: [
-    'Tomáš Holinka records and plays as THOMPSON — trance and melodic techno out of',
-    'Krnov, Czechia. Haven, his monthly mix series, is where the sound is laid out',
-    'in full; club sets pull the same palette into a shorter, harder arc for the',
-    'floor. Booking is open for clubs, festivals and private events.',
-  ].join(' '),
-} as const;
+/** `bio.short`/`bio.long` live in `src/i18n/*.ts` (`bio.short` / `bio.long`
+ * keys) now that there's a Czech version to keep in sync — prose, unlike the
+ * genre terms above, does need translating. */
 
 /**
  * One shape for every image slot on the page, real or not. `src: null`
@@ -52,6 +53,9 @@ export const bio = {
  */
 export interface Media {
   src: ImageMetadata | null;
+  /** A `src/i18n/*.ts` key (e.g. `'media.portrait'`), not literal text —
+   * `MediaFrame.astro` resolves it through `t()` before it reaches the
+   * `<img>`/`<Placeholder>` it renders. */
   alt: string;
   ratio: `${number} / ${number}`;
   path: string;
@@ -89,7 +93,6 @@ export const events: Event[] = [
     place: 'Úvalno',
     address: 'Úvalno 793 91, Czechia',
     url: 'https://fb.me/e/4ZW9aWe4w',
-    poster: { src: null, alt: 'Festival na Rychtě flyer', ratio: '2 / 3', path: 'src/assets/photos/show-rychta.jpg', tone: 'cyan' },
   },
 ];
 
@@ -107,6 +110,8 @@ interface Mix {
   /** Path as Mixcloud writes it, with both slashes. */
   feed: string;
   url: string;
+  /** Optional — not every episode is on YouTube yet. */
+  youtube?: string;
   artwork: Media;
 }
 
@@ -117,7 +122,9 @@ export const mixes: Mix[] = [
     number: '003',
     feed: '/Thompson111/thompson-haven-mix-003/',
     url: 'https://www.mixcloud.com/Thompson111/thompson-haven-mix-003/',
-    artwork: { src: haven003Artwork, alt: 'Haven 003 artwork', ratio: '1 / 1', path: 'src/assets/photos/haven-003.jpg', tone: 'magenta' },
+    // TODO: swap for the real upload URL once episode 003 is on YouTube.
+    youtube: 'https://www.youtube.com/TODO-haven-003',
+    artwork: { src: haven003Artwork, alt: 'media.haven003', ratio: '1 / 1', path: 'src/assets/photos/haven-003.jpg', tone: 'magenta' },
   },
 ];
 
@@ -125,14 +132,14 @@ export const mixes: Mix[] = [
  * it — a contact-sheet pair rather than one lonely box. */
 export const portrait: Media = {
   src: portraitPhoto,
-  alt: 'THOMPSON, portrait',
+  alt: 'media.portrait',
   ratio: '4 / 5',
   path: 'src/assets/photos/portrait.jpg',
   tone: 'violet',
 };
 export const portraitAlt: Media = {
   src: portraitAltPhoto,
-  alt: 'Hands on the mixer, mid-set',
+  alt: 'media.portraitAlt',
   ratio: '1 / 1',
   path: 'src/assets/photos/portrait-alt.jpg',
   tone: 'cyan',
@@ -140,12 +147,12 @@ export const portraitAlt: Media = {
 
 /** Live/press imagery for the gallery wheel. */
 export const gallery: Media[] = [
-  { src: gallery01, alt: 'THOMPSON at the decks', ratio: '3 / 4', path: 'src/assets/photos/gallery-01.jpg', tone: 'cyan' },
-  { src: gallery02, alt: 'THOMPSON, arms up over the crowd', ratio: '3 / 4', path: 'src/assets/photos/gallery-02.jpg', tone: 'magenta' },
-  { src: gallery03, alt: 'Hands forming a heart, festival lights', ratio: '3 / 4', path: 'src/assets/photos/gallery-03.jpg', tone: 'violet' },
-  { src: gallery04, alt: '"Live Love Thompson", held up in the crowd', ratio: '3 / 4', path: 'src/assets/photos/gallery-04.jpg', tone: 'cyan' },
-  { src: gallery05, alt: 'THOMPSON at the controller, colour-lit', ratio: '3 / 4', path: 'src/assets/photos/gallery-05.jpg', tone: 'magenta' },
-  { src: gallery06, alt: 'THOMPSON at the controller, daylight set', ratio: '3 / 4', path: 'src/assets/photos/gallery-06.jpg', tone: 'violet' },
+  { src: gallery01, alt: 'media.gallery1', ratio: '3 / 4', path: 'src/assets/photos/gallery-01.jpg', tone: 'cyan' },
+  { src: gallery02, alt: 'media.gallery2', ratio: '3 / 4', path: 'src/assets/photos/gallery-02.jpg', tone: 'magenta' },
+  { src: gallery03, alt: 'media.gallery3', ratio: '3 / 4', path: 'src/assets/photos/gallery-03.jpg', tone: 'violet' },
+  { src: gallery04, alt: 'media.gallery4', ratio: '3 / 4', path: 'src/assets/photos/gallery-04.jpg', tone: 'cyan' },
+  { src: gallery05, alt: 'media.gallery5', ratio: '3 / 4', path: 'src/assets/photos/gallery-05.jpg', tone: 'magenta' },
+  { src: gallery06, alt: 'media.gallery6', ratio: '3 / 4', path: 'src/assets/photos/gallery-06.jpg', tone: 'violet' },
 ];
 
 /** EPK downloads. `null` renders as "on request" and points at the booking
@@ -179,8 +186,7 @@ export const heroVideo: { mp4: string; webm: string; poster: string } | null = {
  * `video` is ever unset. */
 export const band = {
   video: heroVideo,
-  line: 'We don’t drop. We lift.',
-  still: { src: null, alt: 'Room, mid-set', ratio: '21 / 9', path: 'src/assets/photos/band.jpg', tone: 'violet' } satisfies Media,
+  still: { src: null, alt: 'media.bandStill', ratio: '21 / 9', path: 'src/assets/photos/band.jpg', tone: 'violet' } satisfies Media,
 };
 
 /**
@@ -192,6 +198,6 @@ export const band = {
 export const posterVariants = [
   { slug: 'p1', note: 'God is looking when Thompson is cooking.' },
   { slug: 'p2', note: 'Find your haven.' },
-  { slug: 'p3', note: 'We don’t drop. We lift.' },
+  { slug: 'p3', note: 'We don’t just listen to music. We feel it.' },
   { slug: 'p4', note: 'Krnov has a sound now.' },
 ] as const;

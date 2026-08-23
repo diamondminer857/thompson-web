@@ -1,12 +1,24 @@
 ---
 import Logo from './Logo.astro';
+import { getLangFromUrl, useTranslations, alternatePath } from '../i18n';
+
+interface Props {
+  /** Poster-variant pages have no `/cs` counterpart — hide the toggle there. */
+  showLangToggle?: boolean;
+}
+const { showLangToggle = true } = Astro.props;
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const otherLang = lang === 'en' ? 'cs' : 'en';
+const otherHref = alternatePath(Astro.url.pathname, otherLang);
 
 const links = [
-  { href: '#shows', label: 'Shows' },
-  { href: '#haven', label: 'Haven' },
-  { href: '#about', label: 'About' },
-  { href: '#press', label: 'Press' },
-  { href: '#booking', label: 'Book' },
+  { href: '#shows', label: t('nav.shows') },
+  { href: '#haven', label: t('nav.haven') },
+  { href: '#about', label: t('nav.about') },
+  { href: '#press', label: t('nav.press') },
+  { href: '#booking', label: t('nav.book') },
 ] as const;
 ---
 
@@ -17,8 +29,8 @@ const links = [
   appears, which is fine: every link it holds is also reachable by scrolling,
   so nothing is lost, only the shortcut.
 -->
-<nav class="nav" aria-label="Section">
-  <a class="mark" href="#top" aria-label="Back to top">
+<nav class="nav" aria-label={t('nav.section')}>
+  <a class="mark" href="#top" aria-label={t('nav.backToTop')}>
     <Logo size="1.75rem" />
   </a>
 
@@ -28,16 +40,26 @@ const links = [
         <a href={link.href}>{link.label}</a>
       </li>
     ))}
+    {showLangToggle && (
+      <li>
+        <a class="lang" href={otherHref} aria-label={t('nav.switchLang')}>{otherLang.toUpperCase()}</a>
+      </li>
+    )}
   </ul>
 
   <details class="disclosure">
-    <summary aria-label="Menu">Menu</summary>
+    <summary aria-label={t('nav.menu')}>{t('nav.menu')}</summary>
     <ul>
       {links.map((link) => (
         <li>
           <a href={link.href}>{link.label}</a>
         </li>
       ))}
+      {showLangToggle && (
+        <li>
+          <a class="lang" href={otherHref} aria-label={t('nav.switchLang')}>{otherLang.toUpperCase()}</a>
+        </li>
+      )}
     </ul>
   </details>
 </nav>

@@ -1,11 +1,14 @@
 ---
 import { site } from '../../site';
+import { getLangFromUrl, useTranslations } from '../../i18n';
+
+const t = useTranslations(getLangFromUrl(Astro.url));
 ---
 
 <section class="block" id="booking">
-  <p class="label reveal">Bookings</p>
+  <p class="label reveal">{t('booking.label')}</p>
   <a class="full email reveal" href={`mailto:${site.bookingEmail}`}>{site.bookingEmail}</a>
-  <p class="who reveal">{site.realName} • {site.base}</p>
+  <p class="who reveal">{site.realName} • {t('site.base')}</p>
 </section>
 
 <style>

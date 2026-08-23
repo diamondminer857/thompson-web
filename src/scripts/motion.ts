@@ -1,7 +1,8 @@
 /**
  * The page-wide anime.js hub: the intro beat, the hero entrance, scroll
- * reveals, nav scramble-text, magnetic buttons, the custom cursor, and
- * scroll-parallax all live here so they can be sequenced against each other
+ * reveals, nav scramble-text, magnetic buttons, the show-row arrow nudge,
+ * the custom cursor, and scroll-parallax all live here so they can be
+ * sequenced against each other
  * (the hero waits on the intro; nothing else waits on anything). Two other
  * places use anime.js locally instead of through this file — `Footer.astro`'s
  * theme-wipe and `GalleryLightbox.astro`'s open/close transition — because
@@ -197,6 +198,28 @@ function animateMagnetic() {
 }
 
 /**
+ * Any inline "→" glyph (the compact show rows' "Details" link, the "All
+ * shows" overflow button) gets a spring nudge on hover/focus rather than a
+ * plain CSS transition, so it reads as the same hand that built the magnetic
+ * buttons rather than a second, cheaper interaction language living right
+ * next to them.
+ */
+function animateArrows() {
+  document.querySelectorAll<HTMLElement>('.arrow').forEach((arrow) => {
+    const link = arrow.closest<HTMLElement>('a');
+    if (!link) return;
+
+    const nudge = () => animate(arrow, { translateX: 6, duration: 350, ease: 'outBack' });
+    const settle = () => animate(arrow, { translateX: 0, duration: 450, ease: 'outElastic' });
+
+    link.addEventListener('mouseenter', nudge);
+    link.addEventListener('mouseleave', settle);
+    link.addEventListener('focus', nudge);
+    link.addEventListener('blur', settle);
+  });
+}
+
+/**
  * A trailing ring plus a tight dot, both `mix-blend-mode: difference` (see
  * `Cursor.astro`) so they invert against dark and light sections alike for
  * free. Fine-pointer only — `matchMedia('(hover: hover) and (pointer:
@@ -272,6 +295,7 @@ if (!reduceMotion) {
   animateReveals();
   animateNavScramble();
   animateMagnetic();
+  animateArrows();
   initCursor();
   animateParallax();
 }

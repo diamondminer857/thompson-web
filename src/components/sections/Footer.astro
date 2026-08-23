@@ -1,6 +1,9 @@
 ---
 import Logo from '../Logo.astro';
 import { site } from '../../site';
+import { getLangFromUrl, useTranslations } from '../../i18n';
+
+const t = useTranslations(getLangFromUrl(Astro.url));
 ---
 
 <footer>
@@ -18,7 +21,7 @@ import { site } from '../../site';
   -->
   <button type="button" class="theme" aria-pressed="false">
     <span class="theme-swatch" aria-hidden="true"></span>
-    <span>Light mode</span>
+    <span>{t('footer.lightMode')}</span>
   </button>
 </footer>
 

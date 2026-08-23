@@ -1,0 +1,263 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <!-- Same two faces the site itself loads (see astro.config.mjs). Pulled
+         from Google Fonts at generation time — this script only ever runs
+         locally, not in a viewer's browser. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Space+Grotesk:wght@600;700&display=block"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --accent-cyan: #5be3ff;
+        --accent-magenta: #ff5fc0;
+        --ink: #fff;
+        --ink-3: rgba(255, 255, 255, 0.72);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      /* Fully transparent canvas, not a black card: this is an overlay meant
+         to sit on its own track above your own footage in an editor, not a
+         standalone video. Playwright captures this with omitBackground so
+         only the text/logo/scrim pixels carry any alpha at all. */
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: transparent;
+      }
+
+      body {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Space Grotesk', system-ui, sans-serif;
+      }
+
+      /* A soft, low-opacity scrim behind whichever element is currently on
+         screen — legibility insurance over footage we can't see in advance,
+         not a hard card. Opacity itself is animated per-beat in JS (see
+         generate.mjs's timeline), starting at 0. */
+      .scrim {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse 62% 46% at 50% 50%, rgba(0, 0, 0, 0.6), transparent 72%);
+        opacity: 0;
+      }
+
+      .stage {
+        position: relative;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .mark {
+        position: absolute;
+        width: 130px;
+        color: var(--ink);
+        opacity: 0;
+        filter: drop-shadow(0 2px 18px rgba(0, 0, 0, 0.55));
+      }
+
+      .mark svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      /* The two narration lines — solid white with a real drop-shadow
+         (not the site's cyan/magenta gradient fill): this has to stay
+         legible over completely unknown footage, so it leans on contrast
+         rather than the brand gradient, which the branding card below still
+         carries. */
+      .line {
+        position: absolute;
+        max-width: 1500px;
+        margin: 0;
+        padding: 0 40px;
+        font-family: 'Unbounded', sans-serif;
+        font-weight: 800;
+        font-size: 92px;
+        line-height: 1.08;
+        letter-spacing: -0.01em;
+        text-align: center;
+        text-transform: uppercase;
+        text-wrap: balance;
+        color: var(--ink);
+        filter: drop-shadow(0 4px 24px rgba(0, 0, 0, 0.65));
+        opacity: 0;
+      }
+
+      .card {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 26px;
+        opacity: 0;
+      }
+
+      .card .mark {
+        position: static;
+        width: 110px;
+        opacity: 1;
+      }
+
+      .wordmark {
+        font-family: 'Unbounded', sans-serif;
+        font-weight: 700;
+        font-size: 72px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--ink);
+        filter: drop-shadow(0 2px 18px rgba(0, 0, 0, 0.55));
+      }
+
+      .strapline {
+        margin-top: -10px;
+        font-weight: 600;
+        font-size: 30px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        filter: drop-shadow(0 2px 14px rgba(0, 0, 0, 0.55));
+      }
+
+      .rule {
+        width: 130px;
+        height: 4px;
+        background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
+      }
+
+      .episode {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        font-weight: 600;
+        font-size: 24px;
+        letter-spacing: 0.26em;
+        text-indent: 0.26em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        filter: drop-shadow(0 2px 14px rgba(0, 0, 0, 0.55));
+      }
+
+      .episode::before {
+        content: '';
+        width: 56px;
+        height: 3px;
+        background: var(--accent-cyan);
+        box-shadow: 0 0 14px -2px var(--accent-cyan);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="scrim"></div>
+
+    <div class="stage">
+      <div class="mark" data-role="logo">
+        <svg viewBox="0 0 1000 1000" fill="currentColor" fill-rule="evenodd" role="img" aria-label="Thompson">
+          <path
+            d="M182 0H818A182 182 0 0 1 1000 182V818A182 182 0 0 1 818 1000H182A182 182 0 0 1 0 818V182A182 182 0 0 1 182 0ZM219 221H781V783H219ZM273 323H392V442H273ZM608 323H727V442H608ZM288 643H374V673H624V643H710V684A78 78 0 0 1 632 762H366A78 78 0 0 1 288 684Z"
+          />
+        </svg>
+      </div>
+
+      <p class="line" data-role="line1">Embark on a journey of trance and melodic techno.</p>
+      <p class="line" data-role="line2">Are you ready to find your haven?</p>
+
+      <div class="card" data-role="card">
+        <div class="mark">
+          <svg viewBox="0 0 1000 1000" fill="currentColor" fill-rule="evenodd" role="img" aria-label="Thompson">
+            <path
+              d="M182 0H818A182 182 0 0 1 1000 182V818A182 182 0 0 1 818 1000H182A182 182 0 0 1 0 818V182A182 182 0 0 1 182 0ZM219 221H781V783H219ZM273 323H392V442H273ZM608 323H727V442H608ZM288 643H374V673H624V643H710V684A78 78 0 0 1 632 762H366A78 78 0 0 1 288 684Z"
+            />
+          </svg>
+        </div>
+        <p class="wordmark">Thompson</p>
+        <p class="strapline">Trance &amp; Melodic Techno</p>
+        <div class="rule"></div>
+        <p class="episode">Haven — mix series #{{NUMBER}}</p>
+      </div>
+    </div>
+
+    <script type="module">
+      import { createTimeline, splitText, stagger } from 'https://esm.sh/animejs@4';
+
+      const logo = document.querySelector('[data-role="logo"]');
+      const line1 = document.querySelector('[data-role="line1"]');
+      const line2 = document.querySelector('[data-role="line2"]');
+      const card = document.querySelector('[data-role="card"]');
+      const scrim = document.querySelector('.scrim');
+
+      const { words: words1 } = splitText(line1, { words: { wrap: 'clip' } });
+      const { words: words2 } = splitText(line2, { words: { wrap: 'clip' } });
+      const cardTail = [...card.children];
+
+      // autoplay: false — this timeline never actually plays in real time.
+      // generate.mjs drives it frame-by-frame via .seek(ms), so every frame
+      // is captured deterministically regardless of how fast/slow this
+      // machine happens to render any given frame.
+      const timeline = createTimeline({ autoplay: false, defaults: { ease: 'outExpo' } });
+
+      // Beat 1 — logo mark, alone. Timed to land on the laser-zap sound
+      // effect (scripts/haven-intro/output/laser-zap.wav, generated
+      // separately and dropped onto its own audio track in the editor,
+      // starting at 0:00 alongside this video): the sound's 350ms
+      // descending sweep ends in an impact at exactly 350ms, so the logo's
+      // entrance is timed to land there too — `outBack` gives it the
+      // slight overshoot/pop a sound impact reads as visually. Fade-out
+      // finishes right as beat 2's scrim starts (2000ms) for a clean
+      // handoff, instead of the old version's overlap into it.
+      timeline
+        .add(logo, { opacity: [0, 1], y: [16, 0], duration: 350, ease: 'outBack' }, 0)
+        .add(scrim, { opacity: [0, 0.5], duration: 350 }, '<')
+        .add(logo, { opacity: [1, 0], y: [0, -12], duration: 500, ease: 'inQuad' }, 1500)
+        .add(scrim, { opacity: [0.5, 0], duration: 500 }, '<');
+
+      // Beat 2 — line 1, word-by-word reveal (same mask technique as the
+      // site's own hero headline — see motion.ts's animateHero).
+      timeline
+        .add(scrim, { opacity: [0, 0.55] }, 2000)
+        .add(line1, { opacity: [0, 1], duration: 1 }, '<')
+        .add(words1, { y: ['100%', '0%'], opacity: [0, 1], duration: 650, delay: stagger(60) }, '<')
+        .add(words1, { opacity: [1, 0], y: [0, -14], duration: 550, delay: stagger(40), ease: 'inQuad' }, 6200)
+        .add(scrim, { opacity: [0.55, 0], duration: 550 }, '<');
+
+      // Beat 3 — line 2, same treatment.
+      timeline
+        .add(scrim, { opacity: [0, 0.55] }, 7300)
+        .add(line2, { opacity: [0, 1], duration: 1 }, '<')
+        .add(words2, { y: ['100%', '0%'], opacity: [0, 1], duration: 650, delay: stagger(60) }, '<')
+        .add(words2, { opacity: [1, 0], y: [0, -14], duration: 550, delay: stagger(40), ease: 'inQuad' }, 11200)
+        .add(scrim, { opacity: [0.55, 0], duration: 550 }, '<');
+
+      // Beat 4 — closing branding card: logo first, then wordmark/rule/
+      // strapline/episode label as one staggered tail (mirrors motion.ts's
+      // `tail` group exactly).
+      timeline
+        .add(scrim, { opacity: [0, 0.6] }, 12300)
+        .add(card, { opacity: [0, 1], duration: 1 }, '<')
+        .add(card.querySelector('.mark'), { opacity: [0, 1], y: [16, 0], duration: 650 }, '<')
+        .add(cardTail.slice(1), { opacity: [0, 1], y: [12, 0], duration: 550, delay: stagger(80) }, '-=380')
+        .add(card, { opacity: [1, 0], duration: 700, ease: 'inQuad' }, 18500)
+        .add(scrim, { opacity: [0.6, 0], duration: 700 }, '<');
+
+      window.__timeline = timeline;
+      window.__duration = timeline.duration;
+    </script>
+  </body>
+</html>

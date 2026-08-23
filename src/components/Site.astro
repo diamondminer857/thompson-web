@@ -16,13 +16,15 @@ import Footer from './sections/Footer.astro';
 interface Props {
   /** Poster-variant override — see `Hero`. */
   headline?: string;
+  /** Poster-variant pages have no `/cs` counterpart — see `Nav`. */
+  showLangToggle?: boolean;
 }
-const { headline } = Astro.props;
+const { headline, showLangToggle = true } = Astro.props;
 ---
 
 <Intro />
 <Cursor />
-<Nav />
+<Nav showLangToggle={showLangToggle} />
 
 <main>
   <Hero headline={headline} />

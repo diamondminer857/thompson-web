@@ -1,6 +1,10 @@
 ---
 import MediaFrame from '../MediaFrame.astro';
 import { band } from '../../site';
+import { getLangFromUrl, useTranslations } from '../../i18n';
+
+const t = useTranslations(getLangFromUrl(Astro.url));
+const line = t('band.line');
 
 /**
  * A full-bleed textural break between Shows and Haven — the answer to
@@ -18,7 +22,7 @@ import { band } from '../../site';
  */
 ---
 
-<section class="band" aria-label={`${band.line} — THOMPSON live`}>
+<section class="band" aria-label={t('band.ariaLabel', { line })}>
   {
     band.video ? (
       <div class="band-media" aria-hidden="true">
@@ -37,7 +41,7 @@ import { band } from '../../site';
     )
   }
 
-  <p class="band-line reveal">{band.line}</p>
+  <p class="band-line reveal">{line}</p>
 </section>
 
 <style>
@@ -45,7 +49,7 @@ import { band } from '../../site';
     position: relative;
     isolation: isolate;
     overflow: hidden;
-    min-height: clamp(16rem, 44vh, 30rem);
+    min-height: clamp(20rem, 52vh, 36rem);
     display: grid;
     place-items: center;
     padding: var(--gutter);
@@ -85,13 +89,21 @@ import { band } from '../../site';
   .band-scrim {
     position: absolute;
     inset: 0;
+    /* One radial vignette handles all four edges together, so there's no
+       rectangle where a vertical fade and a horizontal fade used to end at
+       different points and leave a hard-edged box. The cyan/magenta wash
+       rides on top of it and fades out before it reaches any edge, instead
+       of sitting at full strength flush against the left/right border. */
     background:
-      linear-gradient(180deg, var(--paper) 0%, transparent 18%, transparent 82%, var(--paper) 100%),
+      radial-gradient(ellipse at 50% 50%, transparent 42%, var(--paper) 100%),
       linear-gradient(
         90deg,
-        color-mix(in srgb, var(--accent-cyan) 22%, transparent),
-        transparent 45%,
-        color-mix(in srgb, var(--accent-magenta) 22%, transparent)
+        transparent 0%,
+        color-mix(in srgb, var(--accent-cyan) 26%, transparent) 12%,
+        transparent 46%,
+        transparent 54%,
+        color-mix(in srgb, var(--accent-magenta) 26%, transparent) 88%,
+        transparent 100%
       );
     mix-blend-mode: hard-light;
   }

@@ -1,0 +1,117 @@
+---
+import Base from '../../layouts/Base.astro';
+import Logo from '../../components/Logo.astro';
+import Cursor from '../../components/Cursor.astro';
+import EventRow from '../../components/EventRow.astro';
+import Footer from '../../components/sections/Footer.astro';
+import { events, site } from '../../site';
+import { getLangFromUrl, useTranslations, withLang, alternatePath } from '../../i18n';
+
+// Same rule as the homepage, the hero ticker, and /event.ics: a show that has
+// already ended drops off the list on the next build.
+const upcoming = events
+  .filter((event) => new Date(event.end) > new Date())
+  .sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+
+const [featured, ...rest] = upcoming;
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const otherLang = lang === 'en' ? 'cs' : 'en';
+const otherHref = alternatePath(Astro.url.pathname, otherLang);
+---
+
+<Base
+  title={t('showsPage.title', { name: site.name })}
+  description={t('showsPage.description', { name: site.name })}
+  hrefLangPath="/shows"
+>
+  <Cursor />
+
+  <header class="top">
+    <a class="mark" href={withLang('/', lang)} aria-label={t('showsPage.backHomeAria')}>
+      <Logo size="1.75rem" />
+    </a>
+    <div class="top-links">
+      <a class="back" href={withLang('/', lang)}>{t('showsPage.backHome')}</a>
+      <a class="lang" href={otherHref} aria-label={t('nav.switchLang')}>{otherLang.toUpperCase()}</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="block">
+      <p class="label reveal">{t('showsPage.allShows')}</p>
+
+      {
+        featured ? (
+          <div class="wide list">
+            <EventRow event={featured} featured />
+            {rest.map((event) => (
+              <EventRow event={event} />
+            ))}
+          </div>
+        ) : (
+          <p class="empty">{t('showsPage.empty')}</p>
+        )
+      }
+    </section>
+  </main>
+
+  <Footer />
+</Base>
+
+<script>
+  import '../../scripts/motion.ts';
+</script>
+
+<style>
+  .top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem var(--gutter);
+  }
+
+  .mark {
+    display: block;
+    line-height: 0;
+    opacity: 0.85;
+  }
+
+  .top-links {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .back,
+  .lang {
+    font-size: var(--text-micro);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--ink-3);
+    transition: color 0.15s;
+  }
+
+  .back:hover,
+  .back:focus-visible,
+  .lang:hover,
+  .lang:focus-visible {
+    color: var(--ink-1);
+  }
+
+  .label {
+    --label-accent: var(--accent-cyan);
+  }
+
+  .list > :global(.row.featured) {
+    margin-bottom: 1.75rem;
+  }
+
+  .empty {
+    color: var(--ink-3);
+  }
+</style>

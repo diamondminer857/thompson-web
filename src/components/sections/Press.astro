@@ -1,16 +1,19 @@
 ---
 import { press, site } from '../../site';
+import { getLangFromUrl, useTranslations } from '../../i18n';
+
+const t = useTranslations(getLangFromUrl(Astro.url));
 
 const items = [
-  { key: 'kit', label: 'Press kit (PDF)' },
-  { key: 'logoPack', label: 'Logo pack' },
-  { key: 'photoPack', label: 'Photo pack' },
-  { key: 'rider', label: 'Technical rider' },
+  { key: 'kit', label: t('press.kit') },
+  { key: 'logoPack', label: t('press.logoPack') },
+  { key: 'photoPack', label: t('press.photoPack') },
+  { key: 'rider', label: t('press.rider') },
 ] as const;
 ---
 
 <section class="block" id="press">
-  <p class="label reveal">Press</p>
+  <p class="label reveal">{t('press.label')}</p>
 
   <ul class="wide items">
     {
@@ -29,7 +32,7 @@ const items = [
               <>
                 <span class="pending">{label}</span>
                 <a class="request" href={`mailto:${site.bookingEmail}`}>
-                  on request
+                  {t('press.onRequest')}
                 </a>
               </>
             )}

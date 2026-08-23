@@ -1,5 +1,6 @@
 ---
 import { formatShort, formatWhen } from '../lib/dates';
+import { getLangFromUrl, useTranslations, withLang, localizeCountry } from '../i18n';
 
 interface Props {
   event: {
@@ -16,39 +17,43 @@ interface Props {
   featured?: boolean;
 }
 const { event, featured = false } = Astro.props;
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
 ---
 
 {
   featured ? (
     <article class="row featured reveal">
       <time class="when" datetime={event.start}>
-        {formatWhen(event.start)}
+        {formatWhen(event.start, lang)}
       </time>
       <p class="title">{event.title}</p>
       <p class="place">
-        {event.place} • {event.address}
+        {event.place} • {localizeCountry(event.address, lang)}
       </p>
 
       <div class="actions">
         <a class="btn" href={event.url} rel="noopener">
-          <span>{event.soldOut ? 'Sold out' : 'Event details'}</span>
+          <span>{event.soldOut ? t('shows.soldOut') : t('shows.eventDetails')}</span>
         </a>
-        <a class="btn btn-ghost" href="/event.ics">
-          <span>Add to calendar</span>
+        <a class="btn btn-ghost" href={withLang('/event.ics', lang)}>
+          <span>{t('shows.addToCalendar')}</span>
         </a>
       </div>
     </article>
   ) : (
     <article class="row compact reveal">
       <time class="date" datetime={event.start}>
-        {formatShort(event.start)}
+        {formatShort(event.start, lang)}
       </time>
       <div class="meta">
         <p class="title">{event.title}</p>
         <p class="place">{event.place}</p>
       </div>
       <a class="link" href={event.url} rel="noopener">
-        {event.soldOut ? 'Sold out' : 'Details'}
+        <span>{event.soldOut ? t('shows.soldOut') : t('shows.details')}</span>
+        <span class="arrow" aria-hidden="true">→</span>
       </a>
     </article>
   )
@@ -137,6 +142,9 @@ const { event, featured = false } = Astro.props;
   }
 
   .compact .link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
     font-size: var(--text-micro);
     font-weight: 600;
     letter-spacing: 0.08em;
@@ -149,5 +157,13 @@ const { event, featured = false } = Astro.props;
   .compact .link:hover,
   .compact .link:focus-visible {
     color: var(--accent-magenta-ink);
+  }
+
+  /* Rest transform lives here as a static fallback; `animateArrows()` in
+     motion.ts takes over the same property with a spring ease on hover, so
+     this only matters if that script never runs. */
+  .compact .link .arrow {
+    display: inline-block;
+    transform: translateX(0);
   }
 </style>

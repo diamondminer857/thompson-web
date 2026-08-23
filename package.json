@@ -12,7 +12,10 @@
     "preview": "astro preview",
     "astro": "astro",
     "deploy": "astro build && wrangler deploy",
-    "haven:art": "node scripts/haven-art/generate.mjs"
+    "haven:art": "node scripts/haven-art/generate.mjs",
+    "youtube:thumb": "node scripts/youtube-thumbnail/generate.mjs",
+    "intro:video": "node scripts/haven-intro/generate.mjs",
+    "fx:video": "node scripts/haven-fx/generate.mjs"
   },
   "dependencies": {
     "animejs": "^4.5.0",

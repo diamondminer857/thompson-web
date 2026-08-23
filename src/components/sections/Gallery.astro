@@ -2,6 +2,9 @@
 import MediaFrame from '../MediaFrame.astro';
 import GalleryLightbox from '../GalleryLightbox.astro';
 import { gallery } from '../../site';
+import { getLangFromUrl, useTranslations, type Key } from '../../i18n';
+
+const t = useTranslations(getLangFromUrl(Astro.url));
 
 // The wheel wants more photos on it than the shoot has produced so far —
 // repeat the source list round-robin up to TARGET_COUNT rather than leaving
@@ -55,7 +58,7 @@ const tiles = items.map((item, index) => {
 {
   items.length > 0 && (
     <section class="block" id="gallery">
-      <p class="label reveal">Gallery</p>
+      <p class="label reveal">{t('gallery.label')}</p>
 
       <div class="carousel full" style={`--step: ${step}deg;`}>
         {tiles.map(({ item, index, offset, sin, oneMinusCos, lean, absAngle, hidden }) => (
@@ -67,7 +70,7 @@ const tiles = items.map((item, index) => {
             data-offset={offset}
             aria-hidden={hidden ? 'true' : undefined}
             tabindex={hidden ? -1 : undefined}
-            aria-label={`Open ${item.alt}`}
+            aria-label={t('gallery.open', { alt: t(item.alt as Key) })}
           >
             <MediaFrame src={item.src} alt={item.alt} ratio={item.ratio} path={item.path} tone={item.tone} />
           </button>
@@ -75,7 +78,7 @@ const tiles = items.map((item, index) => {
 
         {tiles.length > 1 && (
           <div class="wheel-nav">
-            <button type="button" class="step-btn prev" aria-label="Rotate gallery left">
+            <button type="button" class="step-btn prev" aria-label={t('gallery.rotateLeft')}>
               <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
                 <path
                   d="M15 5 8 12l7 7"
@@ -87,7 +90,7 @@ const tiles = items.map((item, index) => {
                 />
               </svg>
             </button>
-            <button type="button" class="step-btn next" aria-label="Rotate gallery right">
+            <button type="button" class="step-btn next" aria-label={t('gallery.rotateRight')}>
               <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
                 <path
                   d="M9 5 16 12 9 19"

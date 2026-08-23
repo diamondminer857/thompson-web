@@ -2,6 +2,7 @@
 import Logo from '../Logo.astro';
 import { formatShort } from '../../lib/dates';
 import { heroVideo, nextEvent, site } from '../../site';
+import { getLangFromUrl, useTranslations } from '../../i18n';
 
 interface Props {
   /** A poster variant echoes back its own printed line instead of the
@@ -9,6 +10,9 @@ interface Props {
   headline?: string;
 }
 const { headline = site.headline } = Astro.props;
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
 
 // The hero is the one section that deliberately does NOT follow the
 // --paper/--ink inversion the rest of the page promises (see README "Design
@@ -70,7 +74,7 @@ const { headline = site.headline } = Astro.props;
     nextEvent && (
       <a class="ticker" href="#shows">
         <span class="dot" aria-hidden="true" />
-        Next: {formatShort(nextEvent.start)} / {nextEvent.place}
+        {t('hero.next')} {formatShort(nextEvent.start, lang)} / {nextEvent.place}
       </a>
     )
   }
@@ -81,7 +85,7 @@ const { headline = site.headline } = Astro.props;
     counterpoint to the bob, so the orb reads as levitating rather than
     merely moving. Delays are inline so the stagger survives reordering.
   -->
-  <a class="cue" href="#shows" aria-label="Scroll down">
+  <a class="cue" href="#shows" aria-label={t('hero.scrollDown')}>
     <svg class="cue-art" viewBox="0 0 48 72" aria-hidden="true">
       <defs>
         <!-- The near (bottom) half of a ring's own bounding box, in its own

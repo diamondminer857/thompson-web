@@ -1,16 +1,19 @@
 ---
 import MediaFrame from '../MediaFrame.astro';
-import { bio, portrait, portraitAlt, site } from '../../site';
+import { portrait, portraitAlt, site } from '../../site';
+import { getLangFromUrl, useTranslations } from '../../i18n';
+
+const t = useTranslations(getLangFromUrl(Astro.url));
 ---
 
 <section class="block about" id="about">
-  <p class="label reveal">About</p>
+  <p class="label reveal">{t('about.label')}</p>
 
   <div class="wide layout">
     <div class="copy reveal">
-      <p class="lede">{bio.short}</p>
-      <p class="long">{bio.long}</p>
-      <p class="who">{site.realName} • {site.base}</p>
+      <p class="lede">{t('bio.short')}</p>
+      <p class="long">{t('bio.long')}</p>
+      <p class="who">{site.realName} • {t('site.base')}</p>
     </div>
 
     <!-- A wrapper rather than a class passed into MediaFrame: Astro scopes

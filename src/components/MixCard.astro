@@ -1,27 +1,47 @@
 ---
+import { getLangFromUrl, useTranslations } from '../i18n';
+
 interface Props {
   label: string;
   number: string;
   feed: string;
+  /** Not every episode is on YouTube yet — the link only renders when set. */
+  youtube?: string;
   /** The latest episode gets the big number; older ones in the list are
    * compact. The "full series" link lives once at the section level
    * (`Haven.astro`), not per-card, so this component has no opinion about
    * where the series lives — it just plays one episode. */
   featured?: boolean;
 }
-const { label, number, feed, featured = false } = Astro.props;
+const { label, number, feed, youtube, featured = false } = Astro.props;
+
+const t = useTranslations(getLangFromUrl(Astro.url));
+const playerSuffix = t('mixcard.playerSuffix');
 ---
 
-<article class:list={['mix-card', { featured }, 'reveal']} data-feed={feed}>
+<article class:list={['mix-card', { featured }, 'reveal']} data-feed={feed} data-player-suffix={playerSuffix}>
   {featured && <p class="episode">#{number}</p>}
 
-  <div class="player">
-    <button type="button" class="play">
-      <svg viewBox="0 0 24 24" aria-hidden="true" width={featured ? 18 : 14} height={featured ? 18 : 14}>
-        <path d="M6 3.5 20.5 12 6 20.5Z" fill="currentColor" />
-      </svg>
-      <span>{featured ? 'Play latest episode' : `${label} #${number}`}</span>
-    </button>
+  <div class:list={['actions', { solo: !youtube }]}>
+    {
+      youtube && (
+        <a class="btn" href={youtube} target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" aria-hidden="true" width={featured ? 18 : 14} height={featured ? 18 : 14}>
+            <path d="M6 3.5 20.5 12 6 20.5Z" fill="currentColor" />
+          </svg>
+          <span>{t('mixcard.watchOnYouTube')}</span>
+        </a>
+      )
+    }
+
+    <div class="player">
+      <button type="button" class:list={['play', 'btn', { 'btn-ghost': youtube }]}>
+        <svg viewBox="0 0 24 24" aria-hidden="true" width={featured ? 18 : 14} height={featured ? 18 : 14}>
+          <path d="M6 3.5 20.5 12 6 20.5Z" fill="currentColor" />
+        </svg>
+        <span>{featured ? t('mixcard.listenOnMixcloud') : `${label} #${number}`}</span>
+      </button>
+    </div>
   </div>
 </article>
 
@@ -51,7 +71,24 @@ const { label, number, feed, featured = false } = Astro.props;
     display: grid;
   }
 
-  .mix-card:not(.featured) .play {
+  /* YouTube leads (filled `.btn`), Mixcloud follows as the secondary,
+     outlined action — same visual grammar as the featured show's
+     "event details" / "add to calendar" pair in EventRow.astro. `.solo`
+     (no YouTube link yet) drops back to one column, and the Mixcloud
+     button reverts to filled so it doesn't read as secondary when it's
+     the only option. */
+  .actions {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  @media (min-width: 30rem) {
+    .actions:not(.solo) {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .mix-card:not(.featured) .actions .btn {
     padding: 0.85rem 1.25rem;
     font-size: var(--text-micro);
   }
@@ -70,6 +107,7 @@ const { label, number, feed, featured = false } = Astro.props;
 
     button?.addEventListener('click', () => {
       const feed = card.dataset.feed!;
+      const playerSuffix = card.dataset.playerSuffix ?? ' player';
 
       const frame = document.createElement('iframe');
       frame.src =
@@ -79,7 +117,7 @@ const { label, number, feed, featured = false } = Astro.props;
       frame.height = '120';
       frame.loading = 'lazy';
       frame.allow = 'autoplay; encrypted-media';
-      frame.title = `${card.querySelector('span')?.textContent ?? 'Mixcloud'} player`;
+      frame.title = `${card.querySelector('span')?.textContent ?? 'Mixcloud'}${playerSuffix}`;
       frame.style.border = '0';
 
       host!.replaceChildren(frame);

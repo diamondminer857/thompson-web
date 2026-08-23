@@ -2,16 +2,18 @@
 import MixCard from '../MixCard.astro';
 import MediaFrame from '../MediaFrame.astro';
 import { mixes, site } from '../../site';
+import { getLangFromUrl, useTranslations } from '../../i18n';
 
 const [latest, ...older] = mixes;
+const t = useTranslations(getLangFromUrl(Astro.url));
 ---
 
 <section class="block" id="haven">
-  <p class="label reveal">{latest.label} — mix series</p>
+  <p class="label reveal">{t('haven.label', { name: latest.label })}</p>
 
   <div class="wide layout">
     <div class="numeral reveal">
-      <MixCard label={latest.label} number={latest.number} feed={latest.feed} featured />
+      <MixCard label={latest.label} number={latest.number} feed={latest.feed} youtube={latest.youtube} featured />
     </div>
 
     <div class="art reveal">
@@ -24,7 +26,7 @@ const [latest, ...older] = mixes;
       <ul class="wide older">
         {older.map((mix) => (
           <li>
-            <MixCard label={mix.label} number={mix.number} feed={mix.feed} />
+            <MixCard label={mix.label} number={mix.number} feed={mix.feed} youtube={mix.youtube} />
           </li>
         ))}
       </ul>
@@ -32,7 +34,7 @@ const [latest, ...older] = mixes;
   }
 
   <p class="note reveal">
-    Every month. <a href={site.mixcloud}>Full series on Mixcloud</a>.
+    {t('haven.everyMonth')} <a href={site.mixcloud}>{t('haven.fullSeriesLink')}</a>.
   </p>
 </section>
 

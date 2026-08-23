@@ -28,3 +28,14 @@ pnpm-debug.log*
 
 # generated Haven mix artwork (scripts/haven-art) — regenerate on demand
 scripts/haven-art/output/
+
+# generated YouTube thumbnails (scripts/youtube-thumbnail) — regenerate on demand
+scripts/youtube-thumbnail/output/
+
+# generated Haven intro video + its frame cache (scripts/haven-intro) — regenerate on demand
+scripts/haven-intro/output/
+scripts/haven-intro/frames/
+
+# generated laser/aura effects video + its frame cache (scripts/haven-fx) — regenerate on demand
+scripts/haven-fx/output/
+scripts/haven-fx/frames/
