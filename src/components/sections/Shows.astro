@@ -88,9 +88,13 @@ const overflow = rest.length - shown.length;
     margin: 1.75rem 0 0;
   }
 
-  /* A secondary "see more" action, not a full-width primary CTA — override
-     `.btn`'s default `width: 100%` down to a natural size. */
+  /* A secondary "see more" action, not a full-width primary CTA — `.btn`
+     defaults to `display: flex; width: 100%`, and a block-level flex box
+     with `width: auto` still fills its container (auto ≠ shrink-to-fit for
+     block boxes), so this needs `inline-flex` too, not just the width
+     override, to actually hug its content. */
   .more .btn {
+    display: inline-flex;
     width: auto;
     padding-inline: 2rem;
   }

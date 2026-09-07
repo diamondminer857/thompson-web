@@ -51,7 +51,17 @@ export default {
 
   'haven.label': '{name} — mixová série',
   'haven.everyMonth': 'Každý měsíc.',
-  'haven.fullSeriesLink': 'Celá série na Mixcloudu',
+  'haven.fullSeriesOn': 'Celá série na',
+  'haven.and': 'a',
+  'haven.mixcloudLabel': 'Mixcloudu',
+  'haven.allEpisodes': 'Všechny epizody ({count})',
+
+  'havenPage.title': 'Haven — {name}',
+  'havenPage.description': 'Všechny epizody Haven od {name} na jednom místě.',
+  'havenPage.backHome': '← Domů',
+  'havenPage.backHomeAria': 'Zpět na hlavní stránku',
+  'havenPage.allEpisodes': 'Všechny epizody',
+  'havenPage.empty': 'Zatím nic nahráno — mrkni sem znovu později.',
 
   'mixcard.listenOnMixcloud': 'Poslechnout na Mixcloudu',
   'mixcard.playerSuffix': ' přehrávač',
@@ -92,5 +102,8 @@ export default {
   'media.gallery5': 'THOMPSON u kontroleru, barevné světlo',
   'media.gallery6': 'THOMPSON u kontroleru, denní set',
   'media.bandStill': 'Sál, uprostřed setu',
+  'media.haven001': 'Artwork Haven 001',
+  'media.haven002': 'Artwork Haven 002',
   'media.haven003': 'Artwork Haven 003',
+  'media.haven004': 'Artwork Haven 004',
 } as const;

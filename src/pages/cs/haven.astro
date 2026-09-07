@@ -1,0 +1,138 @@
+---
+import Base from '../../layouts/Base.astro';
+import Logo from '../../components/Logo.astro';
+import Cursor from '../../components/Cursor.astro';
+import MixCard from '../../components/MixCard.astro';
+import MediaFrame from '../../components/MediaFrame.astro';
+import Footer from '../../components/sections/Footer.astro';
+import { mixes, site } from '../../site';
+import { getLangFromUrl, useTranslations, withLang, alternatePath } from '../../i18n';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const otherLang = lang === 'en' ? 'cs' : 'en';
+const otherHref = alternatePath(Astro.url.pathname, otherLang);
+---
+
+<Base
+  title={t('havenPage.title', { name: site.name })}
+  description={t('havenPage.description', { name: site.name })}
+  hrefLangPath="/haven"
+>
+  <Cursor />
+
+  <header class="top">
+    <a class="mark" href={withLang('/', lang)} aria-label={t('havenPage.backHomeAria')}>
+      <Logo size="1.75rem" />
+    </a>
+    <div class="top-links">
+      <a class="back" href={withLang('/', lang)}>{t('havenPage.backHome')}</a>
+      <a class="lang" href={otherHref} aria-label={t('nav.switchLang')}>{otherLang.toUpperCase()}</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="block">
+      <p class="label reveal">{t('havenPage.allEpisodes')}</p>
+
+      {
+        mixes.length > 0 ? (
+          <ul class="wide grid">
+            {mixes.map((mix) => (
+              <li class="episode reveal">
+                <div class="art">
+                  <MediaFrame {...mix.artwork} />
+                </div>
+                <MixCard label={mix.label} number={mix.number} feed={mix.feed} youtube={mix.youtube} withArtwork />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p class="empty">{t('havenPage.empty')}</p>
+        )
+      }
+    </section>
+  </main>
+
+  <Footer />
+</Base>
+
+<script>
+  import '../../scripts/motion.ts';
+</script>
+
+<style>
+  .top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem var(--gutter);
+  }
+
+  .mark {
+    display: block;
+    line-height: 0;
+    opacity: 0.85;
+  }
+
+  .top-links {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .back,
+  .lang {
+    font-size: var(--text-micro);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--ink-3);
+    transition: color 0.15s;
+  }
+
+  .back:hover,
+  .back:focus-visible,
+  .lang:hover,
+  .lang:focus-visible {
+    color: var(--ink-1);
+  }
+
+  .label {
+    --label-accent: var(--accent-magenta);
+  }
+
+  /* The archive's whole point is browsing by artwork — each tile leads with
+     its picture, buttons a secondary line underneath, unlike the homepage's
+     one-featured-episode layout. */
+  .grid {
+    display: grid;
+    gap: clamp(2rem, 5vw, 3rem);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 40rem) {
+    .grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .art {
+    margin-bottom: 1rem;
+  }
+
+  .empty {
+    color: var(--ink-3);
+  }
+</style>

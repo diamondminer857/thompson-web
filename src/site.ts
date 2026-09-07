@@ -9,7 +9,10 @@ import gallery03 from './assets/photos/gallery-03.jpg';
 import gallery04 from './assets/photos/gallery-04.jpg';
 import gallery05 from './assets/photos/gallery-05.jpg';
 import gallery06 from './assets/photos/gallery-06.jpg';
+import haven001Artwork from './assets/photos/haven-001.jpg';
+import haven002Artwork from './assets/photos/haven-002.jpg';
 import haven003Artwork from './assets/photos/haven-003.jpg';
+import haven004Artwork from './assets/photos/haven-004.jpg';
 
 export const site = {
   name: 'THOMPSON',
@@ -29,6 +32,7 @@ export const site = {
 
   instagram: 'https://instagram.com/thompson__dj',
   mixcloud: 'https://www.mixcloud.com/Thompson111/',
+  youtube: 'https://www.youtube.com/@thompson42',
 
   /** Needs a Cloudflare Email Routing rule on the domain to actually deliver. */
   bookingEmail: 'contact@thompsondj.com',
@@ -119,12 +123,32 @@ interface Mix {
 export const mixes: Mix[] = [
   {
     label: 'Haven',
+    number: '004',
+    feed: '/Thompson111/thompson-haven-mix-004/',
+    url: 'https://www.mixcloud.com/Thompson111/thompson-haven-mix-004/',
+    youtube: 'https://youtu.be/OavmzjYqWu8',
+    artwork: { src: haven004Artwork, alt: 'media.haven004', ratio: '1 / 1', path: 'src/assets/photos/haven-004.jpg', tone: 'magenta' },
+  },
+  {
+    label: 'Haven',
     number: '003',
     feed: '/Thompson111/thompson-haven-mix-003/',
     url: 'https://www.mixcloud.com/Thompson111/thompson-haven-mix-003/',
-    // TODO: swap for the real upload URL once episode 003 is on YouTube.
-    youtube: 'https://www.youtube.com/TODO-haven-003',
     artwork: { src: haven003Artwork, alt: 'media.haven003', ratio: '1 / 1', path: 'src/assets/photos/haven-003.jpg', tone: 'magenta' },
+  },
+  {
+    label: 'Haven',
+    number: '002',
+    feed: '/Thompson111/thompson-haven-mix-002/',
+    url: 'https://www.mixcloud.com/Thompson111/thompson-haven-mix-002/',
+    artwork: { src: haven002Artwork, alt: 'media.haven002', ratio: '1 / 1', path: 'src/assets/photos/haven-002.jpg', tone: 'magenta' },
+  },
+  {
+    label: 'Haven',
+    number: '001',
+    feed: '/Thompson111/thompson-haven-mix-001/',
+    url: 'https://www.mixcloud.com/Thompson111/thompson-haven-mix-001/',
+    artwork: { src: haven001Artwork, alt: 'media.haven001', ratio: '1 / 1', path: 'src/assets/photos/haven-001.jpg', tone: 'magenta' },
   },
 ];
 

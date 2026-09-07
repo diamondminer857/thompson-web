@@ -46,7 +46,17 @@ export default {
 
   'haven.label': '{name} — mix series',
   'haven.everyMonth': 'Every month.',
-  'haven.fullSeriesLink': 'Full series on Mixcloud',
+  'haven.fullSeriesOn': 'Full series on',
+  'haven.and': 'and',
+  'haven.mixcloudLabel': 'Mixcloud',
+  'haven.allEpisodes': 'All episodes ({count})',
+
+  'havenPage.title': 'Haven — {name}',
+  'havenPage.description': 'Every {name} Haven episode, all in one place.',
+  'havenPage.backHome': '← Home',
+  'havenPage.backHomeAria': 'Back to home',
+  'havenPage.allEpisodes': 'All episodes',
+  'havenPage.empty': 'Nothing uploaded yet — check back soon.',
 
   'mixcard.listenOnMixcloud': 'Listen on Mixcloud',
   'mixcard.playerSuffix': ' player',
@@ -87,5 +97,8 @@ export default {
   'media.gallery5': 'THOMPSON at the controller, colour-lit',
   'media.gallery6': 'THOMPSON at the controller, daylight set',
   'media.bandStill': 'Room, mid-set',
+  'media.haven001': 'Haven 001 artwork',
+  'media.haven002': 'Haven 002 artwork',
   'media.haven003': 'Haven 003 artwork',
+  'media.haven004': 'Haven 004 artwork',
 } as const;

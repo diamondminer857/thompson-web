@@ -12,8 +12,13 @@ interface Props {
    * (`Haven.astro`), not per-card, so this component has no opinion about
    * where the series lives — it just plays one episode. */
   featured?: boolean;
+  /** A compact card's own "{label} #{number}" line is redundant when it
+   * sits right under artwork that already carries that number (the /haven
+   * grid) — callers without artwork (the homepage's older-episode list)
+   * still need it as the only thing naming which episode a row is. */
+  withArtwork?: boolean;
 }
-const { label, number, feed, youtube, featured = false } = Astro.props;
+const { label, number, feed, youtube, featured = false, withArtwork = false } = Astro.props;
 
 const t = useTranslations(getLangFromUrl(Astro.url));
 const playerSuffix = t('mixcard.playerSuffix');
@@ -21,6 +26,7 @@ const playerSuffix = t('mixcard.playerSuffix');
 
 <article class:list={['mix-card', { featured }, 'reveal']} data-feed={feed} data-player-suffix={playerSuffix}>
   {featured && <p class="episode">#{number}</p>}
+  {!featured && !withArtwork && <p class="episode-compact">{label} #{number}</p>}
 
   <div class:list={['actions', { solo: !youtube }]}>
     {
@@ -39,7 +45,7 @@ const playerSuffix = t('mixcard.playerSuffix');
         <svg viewBox="0 0 24 24" aria-hidden="true" width={featured ? 18 : 14} height={featured ? 18 : 14}>
           <path d="M6 3.5 20.5 12 6 20.5Z" fill="currentColor" />
         </svg>
-        <span>{featured ? t('mixcard.listenOnMixcloud') : `${label} #${number}`}</span>
+        <span>{t('mixcard.listenOnMixcloud')}</span>
       </button>
     </div>
   </div>
@@ -64,6 +70,19 @@ const playerSuffix = t('mixcard.playerSuffix');
     .mix-card.featured .episode {
       color: var(--accent-magenta-ink);
     }
+  }
+
+  /* Compact rows carry no big outline numeral, so both buttons can stay
+     plainly platform-named ("Listen on Mixcloud" / "Watch on YouTube")
+     without losing which episode a row is — this label says it once,
+     instead of the old trick of smuggling "{label} #{number}" into the
+     Mixcloud button's own text. */
+  .episode-compact {
+    margin: 0 0 0.6rem;
+    font-size: var(--text-meta);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--ink-1);
   }
 
   .player {
@@ -117,7 +136,7 @@ const playerSuffix = t('mixcard.playerSuffix');
       frame.height = '120';
       frame.loading = 'lazy';
       frame.allow = 'autoplay; encrypted-media';
-      frame.title = `${card.querySelector('span')?.textContent ?? 'Mixcloud'}${playerSuffix}`;
+      frame.title = `${button.querySelector('span')?.textContent ?? 'Mixcloud'}${playerSuffix}`;
       frame.style.border = '0';
 
       host!.replaceChildren(frame);

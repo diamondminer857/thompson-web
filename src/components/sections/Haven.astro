@@ -2,10 +2,17 @@
 import MixCard from '../MixCard.astro';
 import MediaFrame from '../MediaFrame.astro';
 import { mixes, site } from '../../site';
-import { getLangFromUrl, useTranslations } from '../../i18n';
+import { getLangFromUrl, useTranslations, withLang } from '../../i18n';
 
 const [latest, ...older] = mixes;
-const t = useTranslations(getLangFromUrl(Astro.url));
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+// Past this many, the homepage becomes a wall of rows rather than a
+// highlight — the rest is still reachable via the "all episodes" link
+// below regardless, same rule Shows uses for its own overflow.
+const CAP = 5;
+const shown = older.slice(0, CAP);
 ---
 
 <section class="block" id="haven">
@@ -22,9 +29,9 @@ const t = useTranslations(getLangFromUrl(Astro.url));
   </div>
 
   {
-    older.length > 0 && (
+    shown.length > 0 && (
       <ul class="wide older">
-        {older.map((mix) => (
+        {shown.map((mix) => (
           <li>
             <MixCard label={mix.label} number={mix.number} feed={mix.feed} youtube={mix.youtube} />
           </li>
@@ -33,8 +40,16 @@ const t = useTranslations(getLangFromUrl(Astro.url));
     )
   }
 
+  <p class="wide more reveal">
+    <a class="btn btn-ghost" href={withLang('/haven', lang)}>
+      <span>{t('haven.allEpisodes', { count: mixes.length })}</span>
+      <span class="arrow" aria-hidden="true">→</span>
+    </a>
+  </p>
+
   <p class="note reveal">
-    {t('haven.everyMonth')} <a href={site.mixcloud}>{t('haven.fullSeriesLink')}</a>.
+    {t('haven.everyMonth')} {t('haven.fullSeriesOn')} <a href={site.youtube}>YouTube</a> {t('haven.and')}{' '}
+    <a href={site.mixcloud}>{t('haven.mixcloudLabel')}</a>.
   </p>
 </section>
 
@@ -74,10 +89,31 @@ const t = useTranslations(getLangFromUrl(Astro.url));
     list-style: none;
   }
 
+  .more {
+    margin: 1.75rem 0 0;
+  }
+
+  /* A secondary "see more" action, not a full-width primary CTA — `.btn`
+     defaults to `display: flex; width: 100%`, and a block-level flex box
+     with `width: auto` still fills its container (auto ≠ shrink-to-fit for
+     block boxes), so this needs `inline-flex` too, not just the width
+     override, to actually hug its content. */
+  .more .btn {
+    display: inline-flex;
+    width: auto;
+    padding-inline: 2rem;
+  }
+
+  .more .arrow {
+    display: inline-block;
+    transform: translateX(0);
+  }
+
   .note {
-    margin: 1.25rem 0 0;
+    margin: 1rem 0 0;
     font-size: var(--text-meta);
     color: var(--ink-3);
+    text-align: center;
   }
 
   .note a {
