@@ -69,7 +69,7 @@ export function buildIcsResponse(lang: Lang) {
       `DTSTAMP:${stamp(new Date())}`,
       `DTSTART:${stamp(start)}`,
       `DTEND:${stamp(new Date(nextEvent.end))}`,
-      `SUMMARY:${esc(`${site.name} — ${nextEvent.title}`)}`,
+      `SUMMARY:${esc(`${site.name}: ${nextEvent.title}`)}`,
       `LOCATION:${esc(localizeCountry(nextEvent.address, lang))}`,
       `DESCRIPTION:${esc(`${site.strapline}. ${nextEvent.url}`)}`,
       `URL:${esc(nextEvent.url)}`,

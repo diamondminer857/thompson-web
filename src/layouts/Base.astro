@@ -28,7 +28,7 @@ const lang = getLangFromUrl(Astro.url);
 const t = useTranslations(lang);
 
 const {
-  title = `${site.name} — ${site.strapline}`,
+  title = `${site.name} | ${site.strapline}`,
   description = `${site.strapline}. ${t('meta.description')}`,
   noindex = false,
   hrefLangPath,

@@ -17,7 +17,7 @@ const t = useTranslations(lang);
  * `.backdrop`).
  */
 const parts = [
-  `${site.name} — ${site.strapline}`,
+  `${site.name}: ${site.strapline}`,
   nextEvent ? t('marquee.next', { date: formatShort(nextEvent.start, lang), place: nextEvent.place }) : null,
   t('marquee.bookingsOpen'),
   t('marquee.havenMonthly'),
