@@ -61,6 +61,9 @@ const beacon = import.meta.env.PUBLIC_CF_BEACON_TOKEN;
       </>
     )}
 
+    <!-- ICO first: Safari ignores SVG favicons and falls back to it, so it
+         has to be declared, and has to match the SVG rather than invert it. -->
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#0a0a0a" />
