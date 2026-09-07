@@ -31,6 +31,9 @@ export const site = {
   headline: 'Find your haven.',
 
   instagram: 'https://instagram.com/thompson__dj',
+  /** No vanity username yet, so this is the numeric profile URL Facebook
+   * hands out — swap it for facebook.com/<handle> once the page has one. */
+  facebook: 'https://www.facebook.com/profile.php?id=61593762612527',
   mixcloud: 'https://www.mixcloud.com/Thompson111/',
   youtube: 'https://www.youtube.com/@thompson42',
 
