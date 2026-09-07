@@ -39,3 +39,7 @@ scripts/haven-intro/frames/
 # generated laser/aura effects video + its frame cache (scripts/haven-fx) — regenerate on demand
 scripts/haven-fx/output/
 scripts/haven-fx/frames/
+
+# generated "Now Playing" lower thirds + their frame cache (scripts/haven-nowplaying) — regenerate on demand
+scripts/haven-nowplaying/output/
+scripts/haven-nowplaying/frames/
