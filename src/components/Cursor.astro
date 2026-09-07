@@ -1,0 +1,80 @@
+---
+/**
+ * A replacement cursor: a trailing ring plus a tight dot, both pure white
+ * with `mix-blend-mode: difference` so they invert against whatever they sit
+ * over for free — the exact trick the mark itself uses (see README "Design
+ * notes"), just applied to something that follows the pointer instead of
+ * sitting still.
+ *
+ * Hidden by default and only shown by adding `.has-cursor` to `<html>` — see
+ * `initCursor()` in `motion.ts`, which only does that once it has confirmed a
+ * fine pointer is present and `prefers-reduced-motion` isn't set. A visitor
+ * on touch, or whose script never runs, keeps the native cursor untouched.
+ */
+---
+
+<div class="cursor" aria-hidden="true">
+  <div class="cursor-ring"></div>
+  <div class="cursor-dot"></div>
+</div>
+
+<style>
+  .cursor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 200;
+    display: none;
+    pointer-events: none;
+    mix-blend-mode: difference;
+  }
+
+  :global(:root.has-cursor) .cursor {
+    display: block;
+  }
+
+  /* Native cursor only goes away once the replacement is confirmed active —
+     never as a default, or a script failure would leave visitors with no
+     cursor at all. */
+  :global(:root.has-cursor),
+  :global(:root.has-cursor *) {
+    cursor: none;
+  }
+
+  .cursor-ring,
+  .cursor-dot {
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius: 50%;
+    /* Centring via negative margin, not `transform: translate(-50%, -50%)`:
+       motion.ts animates `translateX`/`scale` on these via anime, which
+       writes its own inline `transform` and would silently clobber a
+       CSS-authored one. */
+  }
+
+  .cursor-dot {
+    width: 6px;
+    height: 6px;
+    margin: -3px 0 0 -3px;
+    background: #fff;
+  }
+
+  .cursor-ring {
+    width: 34px;
+    height: 34px;
+    margin: -17px 0 0 -17px;
+    border: 1px solid #fff;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cursor {
+      display: none !important;
+    }
+
+    :global(:root.has-cursor),
+    :global(:root.has-cursor *) {
+      cursor: auto;
+    }
+  }
+</style>

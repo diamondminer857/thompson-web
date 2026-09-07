@@ -25,3 +25,21 @@ pnpm-debug.log*
 
 # wrangler
 .wrangler/
+
+# generated Haven mix artwork (scripts/haven-art) — regenerate on demand
+scripts/haven-art/output/
+
+# generated YouTube thumbnails (scripts/youtube-thumbnail) — regenerate on demand
+scripts/youtube-thumbnail/output/
+
+# generated Haven intro video + its frame cache (scripts/haven-intro) — regenerate on demand
+scripts/haven-intro/output/
+scripts/haven-intro/frames/
+
+# generated laser/aura effects video + its frame cache (scripts/haven-fx) — regenerate on demand
+scripts/haven-fx/output/
+scripts/haven-fx/frames/
+
+# generated "Now Playing" lower thirds + their frame cache (scripts/haven-nowplaying) — regenerate on demand
+scripts/haven-nowplaying/output/
+scripts/haven-nowplaying/frames/

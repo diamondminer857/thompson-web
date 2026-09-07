@@ -1,0 +1,595 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <!-- Same two faces the site itself loads (see astro.config.mjs). Pulled
+         from Google Fonts at generation time — this script only ever runs
+         locally, not in a viewer's browser. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700;800&family=Space+Grotesk:wght@500;600;700&display=block"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --accent-cyan: #5be3ff;
+        --accent-magenta: #ff5fc0;
+        --accent-violet: #b489ff;
+        --ink: #fff;
+        --ink-3: rgba(255, 255, 255, 0.72);
+        --ink-4: rgba(255, 255, 255, 0.46);
+        --shadow: drop-shadow(0 3px 20px rgba(0, 0, 0, 0.7));
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      /* Fully transparent canvas, not a black card: like haven-intro, this is
+         an overlay meant to sit on its own track above the episode footage in
+         an editor. Playwright captures it with omitBackground, so only the
+         card's own pixels carry any alpha.
+
+         The layout is authored at half the delivery resolution — 1920x1080
+         for the landscape cut, 1080x1920 for the vertical one — and captured
+         at deviceScaleFactor 2 (see generate.mjs), so every length below is a
+         1080p-scale length that doubles at capture time. Frame size comes in
+         from the generator rather than being hard-coded, since the two
+         orientations share this file. */
+      html,
+      body {
+        width: {{FRAME_W}}px;
+        height: {{FRAME_H}}px;
+        overflow: hidden;
+        background: transparent;
+      }
+
+      body {
+        font-family: 'Space Grotesk', system-ui, sans-serif;
+        color: var(--ink);
+      }
+
+      /* Legibility insurance over footage we can't see in advance: a soft
+         corner-anchored wash rather than a hard card, so it reads as a grade
+         on the footage rather than a box sitting on top of it. Opacity is
+         animated per-beat in the timeline below, starting at 0. */
+      .scrim {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          to top right,
+          rgba(0, 0, 0, 0.72) 0%,
+          rgba(0, 0, 0, 0.45) 26%,
+          rgba(0, 0, 0, 0) 58%
+        );
+        opacity: 0;
+      }
+
+      /* Lower third, left-anchored. 120px in 1080 space = 240px at 4K, well
+         inside YouTube's title-safe area on every device. */
+      .card {
+        position: absolute;
+        left: 120px;
+        bottom: 118px;
+        display: flex;
+        align-items: stretch;
+        gap: 34px;
+      }
+
+      /* The vertical gradient rail — the one element carrying the site's
+         accent at full strength. It moves exactly twice: it scales up from
+         its base on entrance and collapses back to it on exit
+         (transform-origin: bottom). In between it holds perfectly still —
+         it's the card's anchor, and the equaliser is already carrying the
+         motion during the hold. An earlier version drifted its gradient for
+         the whole hold; that read as restless next to everything else and
+         was dropped.
+
+         The `inset: -100%` and the five-stop gradient are what that drift
+         left behind, and they stay: the element is three rail-heights tall
+         with the rail showing its middle third, so what you see is the
+         violet→magenta→violet centre of the ramp — the exact colours the
+         line already had, now simply fixed in place. */
+      .rail {
+        position: relative;
+        width: 5px;
+        flex: none;
+        overflow: hidden;
+        border-radius: 3px;
+        transform: scaleY(0);
+        transform-origin: bottom;
+      }
+
+      .rail i {
+        position: absolute;
+        inset: -100% 0;
+        background: linear-gradient(
+          180deg,
+          var(--accent-cyan),
+          var(--accent-violet),
+          var(--accent-magenta),
+          var(--accent-violet),
+          var(--accent-cyan)
+        );
+      }
+
+      .body {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 18px;
+      }
+
+      /* Row 1 — logo mark, the "Now Playing" label, and the equaliser. */
+      .eyebrow-row {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+
+      /* "somewhere small": the mark rides the eyebrow line at 40px (80px at
+         4K), branding the card without competing with the track title. */
+      .mark {
+        width: 40px;
+        flex: none;
+        color: var(--ink);
+        opacity: 0;
+        filter: var(--shadow);
+      }
+
+      .mark svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .eyebrow {
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 700;
+        font-size: 22px;
+        letter-spacing: 0.3em;
+        text-indent: 0.3em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        color: var(--ink-3);
+        filter: var(--shadow);
+        /* Hidden until beat 2 flips it, exactly like .mark/.eq/.artist/.chip
+           below. Without this the eyebrow is painted in full on frame 0 and
+           then snaps back down to type itself on — which reads as the text
+           appearing instantly, the opposite of the reveal. */
+        opacity: 0;
+      }
+
+      /* The equaliser: six bars on their own CSS keyframes at deliberately
+         mismatched periods, so the group never visibly re-syncs into a
+         pattern. This is what keeps the eleven-second hold alive — a static
+         lower third for that long reads as a stuck frame. Driven by
+         generate.mjs the same way haven-fx's lasers are (pause every
+         animation, set currentTime per frame), not by wall-clock playback. */
+      .eq {
+        display: flex;
+        align-items: flex-end;
+        gap: 4px;
+        height: 26px;
+        opacity: 0;
+        filter: var(--shadow);
+      }
+
+      .eq i {
+        width: 4px;
+        height: 100%;
+        border-radius: 2px;
+        background: linear-gradient(180deg, var(--accent-cyan), var(--accent-magenta));
+        transform-origin: bottom;
+        animation: eq 820ms ease-in-out infinite alternate;
+      }
+
+      .eq i:nth-child(1) { animation-duration: 700ms; animation-delay: -520ms; }
+      .eq i:nth-child(2) { animation-duration: 1040ms; animation-delay: -180ms; }
+      .eq i:nth-child(3) { animation-duration: 600ms; animation-delay: -900ms; }
+      .eq i:nth-child(4) { animation-duration: 900ms; animation-delay: -360ms; }
+      .eq i:nth-child(5) { animation-duration: 760ms; animation-delay: -640ms; }
+      .eq i:nth-child(6) { animation-duration: 1180ms; animation-delay: -80ms; }
+
+      @keyframes eq {
+        from { transform: scaleY(0.18); }
+        to { transform: scaleY(1); }
+      }
+
+      /* Row 2 — the track title. Kept on one line (see the auto-fit routine
+         below, which shrinks the size until it fits) so the card's silhouette
+         is predictable no matter how long a title gets. */
+      .title {
+        font-family: 'Unbounded', sans-serif;
+        font-weight: 800;
+        font-size: 76px;
+        line-height: 1.04;
+        letter-spacing: -0.015em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        color: var(--ink);
+        filter: drop-shadow(0 4px 26px rgba(0, 0, 0, 0.72));
+        /* Same as .eyebrow above: hidden until beat 3 flips it on. */
+        opacity: 0;
+      }
+
+      /* Row 3 — artist, then the label as a bordered chip. */
+      .meta {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+      }
+
+      .artist {
+        font-weight: 600;
+        font-size: 34px;
+        letter-spacing: 0.005em;
+        white-space: nowrap;
+        color: var(--ink);
+        filter: var(--shadow);
+        opacity: 0;
+      }
+
+      .chip {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 9px 20px 9px 16px;
+        border: 1.5px solid rgba(255, 255, 255, 0.3);
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.28);
+        font-weight: 600;
+        font-size: 19px;
+        letter-spacing: 0.16em;
+        text-indent: 0.16em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        color: var(--ink-3);
+        filter: var(--shadow);
+        opacity: 0;
+      }
+
+      .chip .dot {
+        width: 9px;
+        height: 9px;
+        flex: none;
+        border-radius: 50%;
+        background: var(--accent-cyan);
+        box-shadow: 0 0 12px -1px var(--accent-cyan);
+        animation: pulse 1.6s ease-in-out infinite alternate;
+      }
+
+      @keyframes pulse {
+        from { opacity: 0.35; transform: scale(0.82); }
+        to { opacity: 1; transform: scale(1.12); }
+      }
+
+      /* Row 4 — a track-progress hairline that fills across the card for the
+         full on-screen duration. Deterministic (it's a timeline track, not a
+         CSS animation) and doubles as an honest "this card is about to
+         leave" cue for the viewer. */
+      .progress {
+        position: relative;
+        align-self: stretch;
+        height: 3px;
+        margin-top: 6px;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.18);
+        opacity: 0;
+        overflow: hidden;
+      }
+
+      .progress span {
+        position: absolute;
+        inset: 0;
+        border-radius: 2px;
+        background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
+        transform: scaleX(0);
+        transform-origin: left;
+      }
+
+      /* ---- 9:16 and 3:4 --------------------------------------------------
+         Both portrait cuts are authored 1080 CSS px wide — they differ only
+         in height (1920 vs 1440) — so they share one `.vertical` type scale
+         and part company only on where the card sits. Everything type-sized
+         comes down a step from landscape, because a headline that reads at
+         76px across a wide frame is simply too big for a narrow one.
+
+         Two rules here are about the platforms rather than the proportions:
+         the card sits well off the bottom to clear the caption and
+         action-button furniture those apps paint over the lower part of the
+         screen; and the meta row is allowed to wrap, since a three-artist
+         credit plus a label chip does not fit on one 1080-wide line the way
+         it does on 1920. */
+      .vertical .card {
+        left: 72px;
+        gap: 26px;
+      }
+
+      /* 9:16 — full-screen playback, so the app's own UI sits directly on the
+         frame. 430px of clearance keeps the card above all of it. */
+      .vertical-916 .card {
+        bottom: 430px;
+      }
+
+      /* 3:4 — a feed shape, where the caption usually sits below the video
+         rather than on it, so the card can come back down. Still not flush:
+         a 3:4 clip letterboxed into a full-screen player does get UI over its
+         lower edge, and 220px is the compromise that survives both. */
+      .vertical-34 .card {
+        bottom: 220px;
+      }
+
+      .vertical .body {
+        gap: 15px;
+      }
+
+      .vertical .eyebrow-row {
+        gap: 16px;
+      }
+
+      .vertical .mark {
+        width: 34px;
+      }
+
+      .vertical .eyebrow {
+        font-size: 18px;
+        letter-spacing: 0.26em;
+        text-indent: 0.26em;
+      }
+
+      .vertical .eq {
+        height: 22px;
+        gap: 3px;
+      }
+
+      .vertical .eq i {
+        width: 3px;
+      }
+
+      .vertical .title {
+        font-size: 62px;
+        line-height: 1.06;
+      }
+
+      .vertical .meta {
+        flex-wrap: wrap;
+        gap: 14px 18px;
+      }
+
+      .vertical .artist {
+        font-size: 26px;
+      }
+
+      .vertical .chip {
+        padding: 7px 16px 7px 13px;
+        font-size: 16px;
+      }
+
+      /* Bottom-up rather than corner-anchored: in a tall frame the card sits
+         near the middle of the height, and a corner wash would leave its top
+         edge sitting on ungraded footage. */
+      .vertical .scrim {
+        background: linear-gradient(
+          to top,
+          rgba(0, 0, 0, 0.78) 0%,
+          rgba(0, 0, 0, 0.55) 26%,
+          rgba(0, 0, 0, 0) 62%
+        );
+      }
+    </style>
+  </head>
+  <body class="{{ORIENTATION}}">
+    <div class="scrim"></div>
+
+    <div class="card">
+      <div class="rail"><i></i></div>
+
+      <div class="body">
+        <div class="eyebrow-row">
+          <div class="mark">
+            <svg viewBox="0 0 1000 1000" fill="currentColor" fill-rule="evenodd" role="img" aria-label="Thompson">
+              <path
+                d="M182 0H818A182 182 0 0 1 1000 182V818A182 182 0 0 1 818 1000H182A182 182 0 0 1 0 818V182A182 182 0 0 1 182 0ZM219 221H781V783H219ZM273 323H392V442H273ZM608 323H727V442H608ZM288 643H374V673H624V643H710V684A78 78 0 0 1 632 762H366A78 78 0 0 1 288 684Z"
+              />
+            </svg>
+          </div>
+          <p class="eyebrow">Now Playing</p>
+          <div class="eq"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+
+        <h1 class="title">{{TRACK}}</h1>
+
+        <div class="meta">
+          <p class="artist">{{ARTIST}}</p>
+          <span class="chip"><i class="dot"></i>{{LABEL}}</span>
+        </div>
+
+        <div class="progress"><span></span></div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { createTimeline, splitText, stagger } from 'https://esm.sh/animejs@4';
+
+      const DURATION = {{DURATION_MS}};
+
+      // Everything here measures type, so none of it may run before the
+      // webfonts have swapped in for layout — with the fallback face still in
+      // place, the title's auto-fit would size against the wrong metrics and
+      // be wrong for the whole clip, not just a frame or two.
+      //
+      // Hence a `.then()` rather than a top-level `await`: top-level await in
+      // a module defers the document's load event, and Chromium won't settle
+      // `document.fonts.ready` until after that event — awaiting it at the
+      // top level deadlocks the page outright (it does; this was written that
+      // way first). generate.mjs waits for `window.__timeline`, published on
+      // the last line below, so it can't race ahead of this either.
+      document.fonts.ready.then(() => {
+        const scrim = document.querySelector('.scrim');
+        const rail = document.querySelector('.rail');
+        const mark = document.querySelector('.mark');
+        const eyebrow = document.querySelector('.eyebrow');
+        const eq = document.querySelector('.eq');
+        const title = document.querySelector('.title');
+        const artist = document.querySelector('.artist');
+        const chip = document.querySelector('.chip');
+        const progress = document.querySelector('.progress');
+        const progressFill = progress.querySelector('span');
+
+        // Auto-fit the title before anything splits it: the title is
+        // deliberately nowrap, so a long track name ("… (Extended Club Mix)")
+        // would otherwise run straight off the edge of the frame.
+        //
+        // Two stages, in the order that costs the least: first shrink on one
+        // line, but only down to `wrapAt` — past that a single line gets
+        // small enough that another line is the better trade. Anything still
+        // too wide is allowed to wrap, and shrinks further only if it spills
+        // past `maxLines`. The numbers differ per orientation (a 1080-wide
+        // frame needs smaller type and can afford a third line), so they come
+        // in from the generator rather than being written in here.
+        const FIT = {{FIT_JSON}};
+        let size = FIT.start;
+
+        while (title.scrollWidth > FIT.maxWidth && size > FIT.wrapAt) {
+          size -= 2;
+          title.style.fontSize = `${size}px`;
+        }
+
+        if (title.scrollWidth > FIT.maxWidth) {
+          title.style.whiteSpace = 'normal';
+          title.style.maxWidth = `${FIT.maxWidth}px`;
+          title.style.textWrap = 'balance';
+          const lineHeight = parseFloat(getComputedStyle(title).lineHeight) / size;
+          const fits = () =>
+            title.getBoundingClientRect().height <= size * lineHeight * FIT.maxLines + 4;
+          while (!fits() && size > FIT.floor) {
+            size -= 2;
+            title.style.fontSize = `${size}px`;
+          }
+        }
+
+        // Same masked reveal the site's own hero headline uses (see
+        // motion.ts's animateHero): each unit rides up from behind a clipped
+        // wrapper rather than merely fading in.
+        //
+        // Both are split to *characters*, the title included — it used to be
+        // split by word, and two words rising together over 760ms read as a
+        // pop rather than a reveal. Per-letter, the headline ripples. Word
+        // wrappers are still created underneath either way, so a long title
+        // wraps to two lines exactly as before.
+        const { chars: eyebrowChars } = splitText(eyebrow, { chars: { wrap: 'clip' } });
+        const { chars: titleChars } = splitText(title, { chars: { wrap: 'clip' } });
+
+        // The ripple across the title should take about the same time
+        // whether the track is "Time Traveler" or "Something Beautiful
+        // (Extended Club Mix)" — a fixed per-character delay would stretch a
+        // long title's reveal past two seconds.
+        const titleStagger = Math.min(26, 700 / titleChars.length);
+
+        // The card is on screen for DURATION; the entrance owns the first
+        // ~2s and the exit the last ~1.1s, with the hold in between. Both
+        // are absolute rather than proportional, so --duration only ever
+        // lengthens the hold and leaves the choreography itself untouched.
+        const OUT_AT = DURATION - 1100;
+
+        // autoplay: false — this timeline never plays in real time.
+        // generate.mjs steps it with .seek(ms) and screenshots each frame, so
+        // every frame is exact regardless of render speed on the day.
+        const timeline = createTimeline({ autoplay: false, defaults: { ease: 'outExpo' } });
+
+        // Beat 1 — the ground: the scrim wash, then the rail drawing up from
+        // its base. The rail leads because everything else is anchored to it.
+        timeline
+          .add(scrim, { opacity: [0, 1], duration: 620, ease: 'outQuad' }, 0)
+          .add(rail, { scaleY: [0, 1], duration: 900, ease: 'outExpo' }, 120);
+
+        // Beat 2 — the eyebrow line: mark pops in, then "NOW PLAYING" types
+        // itself on letter by letter, equaliser comes up last.
+        //
+        // `out(3)` rather than the timeline's default `outExpo` here and in
+        // beat 3: outExpo puts roughly 85% of its travel into the first fifth
+        // of the tween, which on a 20-30px rise is over before the eye
+        // registers it as movement at all — the letters looked like they were
+        // simply appearing. A cubic out still decelerates into place but
+        // spends real time in transit, which is the whole point of a masked
+        // reveal. The stagger is wide enough (42ms) to read as one letter
+        // after another rather than a single block.
+        timeline
+          .add(mark, { opacity: [0, 1], scale: [0.6, 1], duration: 520, ease: 'outBack' }, 300)
+          // duration: 1 — an instant flip of the *container* from its CSS
+          // opacity: 0, so the letters are hidden right up to the moment
+          // their own reveal starts. The visible fade is the per-character
+          // one on the next line.
+          .add(eyebrow, { opacity: [0, 1], duration: 1 }, 380)
+          .add(
+            eyebrowChars,
+            { y: ['120%', '0%'], opacity: [0, 1], duration: 620, delay: stagger(42), ease: 'out(3)' },
+            380,
+          )
+          .add(eq, { opacity: [0, 1], duration: 400 }, 1000);
+
+        // Beat 3 — the headline, letter by letter out of its mask, each one
+        // also unskewing as it rises so the line assembles with some weight
+        // behind it instead of sliding up flat. The overlap into beat 2 (it
+        // starts while the eyebrow is still typing on) is deliberate: the
+        // card should read as one gesture, not four queued ones.
+        timeline.add(title, { opacity: [0, 1], duration: 1 }, 640);
+        timeline.add(
+          titleChars,
+          {
+            y: ['115%', '0%'],
+            skewY: [-7, 0],
+            opacity: [0, 1],
+            duration: 820,
+            delay: stagger(titleStagger),
+            ease: 'out(3)',
+          },
+          640,
+        );
+
+        // Beat 4 — attribution: artist, then the label chip a beat later.
+        // Both moved back ~180ms from where they were, to stay behind the
+        // title's longer reveal.
+        timeline
+          .add(artist, { opacity: [0, 1], y: [22, 0], duration: 620 }, 1300)
+          .add(chip, { opacity: [0, 1], x: [-18, 0], scale: [0.94, 1], duration: 560 }, 1460);
+
+        // Beat 5 — the progress hairline, filling from the moment the card has
+        // finished assembling to the moment it starts to leave.
+        timeline
+          .add(progress, { opacity: [0, 1], duration: 400 }, 1680)
+          .add(progressFill, { scaleX: [0, 1], duration: OUT_AT - 1780, ease: 'linear' }, 1780);
+
+        // Beat 6 — exit. The card leaves the way it arrived, last element
+        // first and downward into the rail; the rail collapses back to its
+        // base; the scrim lifts last, so nothing is ever left sitting on bare
+        // footage.
+        timeline
+          .add(
+            [mark, eyebrow, eq, title, artist, chip, progress],
+            {
+              opacity: [1, 0],
+              y: [0, 18],
+              duration: 620,
+              delay: stagger(45, { from: 'last' }),
+              ease: 'inQuad',
+            },
+            OUT_AT,
+          )
+          .add(rail, { scaleY: [1, 0], duration: 620, ease: 'inQuad' }, OUT_AT + 220)
+          .add(scrim, { opacity: [1, 0], duration: 780, ease: 'inQuad' }, OUT_AT + 320);
+
+        // Fixed, not timeline.duration: the exit lands on DURATION by
+        // construction, and rounding on the last tween shouldn't be what
+        // decides how long the clip runs. Published last, as the signal to
+        // generate.mjs that fonts are in and the timeline is ready to seek.
+        window.__duration = DURATION;
+        window.__timeline = timeline;
+      });
+    </script>
+  </body>
+</html>

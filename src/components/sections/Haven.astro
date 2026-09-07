@@ -1,0 +1,131 @@
+---
+import MixCard from '../MixCard.astro';
+import MediaFrame from '../MediaFrame.astro';
+import { mixes, site } from '../../site';
+import { getLangFromUrl, useTranslations, withLang } from '../../i18n';
+
+const [latest, ...older] = mixes;
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+// Past this many, the homepage becomes a wall of rows rather than a
+// highlight — the rest is still reachable via the "all episodes" link
+// below regardless, same rule Shows uses for its own overflow.
+const CAP = 5;
+const shown = older.slice(0, CAP);
+---
+
+<section class="block" id="haven">
+  <p class="label reveal">{t('haven.label', { name: latest.label })}</p>
+
+  <div class="wide layout">
+    <div class="numeral reveal">
+      <MixCard label={latest.label} number={latest.number} feed={latest.feed} youtube={latest.youtube} featured />
+    </div>
+
+    <div class="art reveal">
+      <MediaFrame {...latest.artwork} />
+    </div>
+  </div>
+
+  {
+    shown.length > 0 && (
+      <ul class="wide older">
+        {shown.map((mix) => (
+          <li>
+            <MixCard label={mix.label} number={mix.number} feed={mix.feed} youtube={mix.youtube} />
+          </li>
+        ))}
+      </ul>
+    )
+  }
+
+  <p class="wide more reveal">
+    <a class="btn btn-ghost" href={withLang('/haven', lang)}>
+      <span>{t('haven.allEpisodes', { count: mixes.length })}</span>
+      <span class="arrow" aria-hidden="true">→</span>
+    </a>
+  </p>
+
+  <p class="note reveal">
+    {t('haven.everyMonth')} {t('haven.fullSeriesOn')} <a href={site.youtube}>YouTube</a> {t('haven.and')}{' '}
+    <a href={site.mixcloud}>{t('haven.mixcloudLabel')}</a>.
+  </p>
+</section>
+
+<style>
+  .label {
+    --label-accent: var(--accent-magenta);
+  }
+
+  .layout {
+    display: grid;
+    gap: clamp(1.5rem, 4vw, 3rem);
+  }
+
+  .art {
+    max-width: 18rem;
+  }
+
+  @media (min-width: 45rem) {
+    .layout {
+      grid-template-columns: 1fr minmax(0, 18rem);
+      align-items: end;
+    }
+
+    .art {
+      max-width: none;
+      /* Let the artwork overhang the reading column into the wide track's
+         own margin — a small deliberate break from the grid it sits in. */
+      margin-right: calc(var(--gutter) * -0.5);
+    }
+  }
+
+  .older {
+    display: grid;
+    gap: 0.75rem;
+    margin: 1.75rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .more {
+    margin: 1.75rem 0 0;
+  }
+
+  /* A secondary "see more" action, not a full-width primary CTA — `.btn`
+     defaults to `display: flex; width: 100%`, and a block-level flex box
+     with `width: auto` still fills its container (auto ≠ shrink-to-fit for
+     block boxes), so this needs `inline-flex` too, not just the width
+     override, to actually hug its content. */
+  .more .btn {
+    display: inline-flex;
+    width: auto;
+    padding-inline: 2rem;
+  }
+
+  .more .arrow {
+    display: inline-block;
+    transform: translateX(0);
+  }
+
+  .note {
+    margin: 1rem 0 0;
+    font-size: var(--text-meta);
+    color: var(--ink-3);
+    text-align: center;
+  }
+
+  .note a {
+    color: var(--ink-1);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.25em;
+    transition: color 0.15s, text-decoration-color 0.15s;
+  }
+
+  .note a:hover,
+  .note a:focus-visible {
+    color: var(--accent-cyan-ink);
+    text-decoration-color: var(--accent-cyan-ink);
+  }
+</style>

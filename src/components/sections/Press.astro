@@ -1,0 +1,113 @@
+---
+import { press, site } from '../../site';
+import { getLangFromUrl, useTranslations } from '../../i18n';
+
+const t = useTranslations(getLangFromUrl(Astro.url));
+
+const items = [
+  { key: 'kit', label: t('press.kit') },
+  { key: 'logoPack', label: t('press.logoPack') },
+  { key: 'photoPack', label: t('press.photoPack') },
+  { key: 'rider', label: t('press.rider') },
+] as const;
+---
+
+<section class="block" id="press">
+  <p class="label reveal">{t('press.label')}</p>
+
+  <ul class="wide items">
+    {
+      items.map(({ key, label }, index) => {
+        const href = press[key];
+        return (
+          <li class="row reveal">
+            <span class="index" aria-hidden="true">
+              {String(index + 1).padStart(2, '0')}
+            </span>
+            {href ? (
+              <a class="link" href={href}>
+                {label}
+              </a>
+            ) : (
+              <>
+                <span class="pending">{label}</span>
+                <a class="request" href={`mailto:${site.bookingEmail}`}>
+                  {t('press.onRequest')}
+                </a>
+              </>
+            )}
+          </li>
+        );
+      })
+    }
+  </ul>
+</section>
+
+<style>
+  .label {
+    --label-accent: var(--accent-violet);
+  }
+
+  .items {
+    display: grid;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 3rem 1fr auto;
+    align-items: baseline;
+    gap: 1rem;
+    padding-block: 1.1rem;
+    border-top: 1px solid var(--hairline);
+  }
+
+  .index {
+    font-size: var(--text-micro);
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-4);
+  }
+
+  .link,
+  .pending {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--text-lede);
+    letter-spacing: -0.01em;
+  }
+
+  .link {
+    color: var(--ink-1);
+    text-underline-offset: 0.25em;
+    transition: color 0.15s, text-decoration-color 0.15s;
+  }
+
+  .link:hover,
+  .link:focus-visible {
+    color: var(--accent-magenta-ink);
+    text-decoration-color: var(--accent-magenta-ink);
+  }
+
+  .pending {
+    color: var(--ink-2);
+  }
+
+  .request {
+    justify-self: end;
+    font-size: var(--text-micro);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    text-underline-offset: 0.25em;
+    transition: color 0.15s, text-decoration-color 0.15s;
+  }
+
+  .request:hover,
+  .request:focus-visible {
+    color: var(--accent-magenta-ink);
+    text-decoration-color: var(--accent-magenta-ink);
+  }
+</style>
