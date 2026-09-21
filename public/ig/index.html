@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>IG Thumbnail</title>
+    <!-- Standalone tool, not part of the Astro site: served as a plain file
+         from public/ so it works from a phone at thompsondj.com/ig/. Same two
+         faces as the site (astro.config.mjs), from Google Fonts since this
+         page sits outside Astro's font pipeline. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Space+Grotesk:wght@400;600;700&display=block&subset=latin-ext"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --paper: #0a0a0a;
+        --ink: #fff;
+        --ink-3: #b8b8b8;
+        --line: #2a2a2a;
+        --cyan: #5be3ff;
+        --magenta: #ff5fc0;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font: 16px/1.4 'Space Grotesk', system-ui, sans-serif;
+      }
+      main {
+        display: grid;
+        gap: 24px;
+        padding: 16px;
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+      @media (min-width: 760px) {
+        main { grid-template-columns: 360px 1fr; align-items: start; }
+        .preview { position: sticky; top: 16px; }
+      }
+      .preview { position: relative; width: 100%; max-width: 420px; margin: 0 auto; }
+      canvas { display: block; width: 100%; height: auto; border-radius: 8px; }
+      /* The 1:1 crop IG shows on the grid: 1080x1080 centred in 1080x1920. */
+      .guide {
+        position: absolute;
+        left: 0; right: 0;
+        top: calc(420 / 1920 * 100%);
+        height: calc(1080 / 1920 * 100%);
+        outline: 2px dashed var(--cyan);
+        pointer-events: none;
+      }
+      .guide[hidden] { display: none; }
+      form { display: grid; gap: 14px; }
+      label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+      label.row { display: flex; align-items: center; gap: 8px; }
+      input, select, textarea {
+        font: inherit;
+        font-size: 16px; /* under 16px iOS zooms on focus */
+        color: var(--ink);
+        background: #141414;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 10px;
+        text-transform: none;
+        letter-spacing: 0;
+        width: 100%;
+      }
+      input[type='checkbox'] { width: auto; }
+      input[type='range'] { padding: 0; }
+      textarea { min-height: 80px; resize: vertical; }
+      button {
+        font: inherit;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 14px;
+        border: 0;
+        border-radius: 6px;
+        color: #000;
+        background: linear-gradient(135deg, var(--cyan), var(--magenta));
+      }
+      .hint { font-size: 12px; color: var(--ink-3); text-transform: none; letter-spacing: 0; font-weight: 400; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <form id="form" onsubmit="return false">
+        <label>Formát
+          <select name="format">
+            <option value="mashup">Mashup</option>
+            <option value="song">Song</option>
+            <option value="haven">Haven</option>
+            <option value="custom">Vlastní</option>
+          </select>
+        </label>
+
+        <div data-for="mashup">
+          <label>Tracky
+            <textarea name="tracks">Artist One - First Song
+Artist Two - Second Song</textarea>
+            <span class="hint">Jeden na řádek: Interpret - Název</span>
+          </label>
+        </div>
+
+        <div data-for="song">
+          <label>Název <input name="songTitle" value="Song Title" /></label>
+          <label>Interpret <input name="songArtist" value="Artist" /></label>
+          <label>Verze <input name="songVersion" placeholder="Thompson Edit" /></label>
+        </div>
+
+        <div data-for="haven">
+          <label>Epizoda <input name="episode" inputmode="numeric" value="5" /></label>
+          <label>Podtitulek <input name="havenSub" value="Trance &amp; Melodic Techno" /></label>
+        </div>
+
+        <div data-for="custom">
+          <label>Nadpis <input name="customTitle" value="Title" /></label>
+          <label>Podtitulek <input name="customSub" value="" /></label>
+        </div>
+
+        <label>Štítek nahoře <input name="label" placeholder="výchozí podle formátu" /></label>
+        <label>Fotka <input name="photo" type="file" accept="image/*" /></label>
+        <label>Pozice fotky <input name="photoY" type="range" min="0" max="100" value="30" /></label>
+        <label>Ztmavení <input name="dim" type="range" min="0" max="90" value="45" /></label>
+        <label class="row"><input name="guide" type="checkbox" checked /> Ukázat 1:1 výřez</label>
+        <button id="save" type="button">Stáhnout PNG</button>
+      </form>
+
+      <div class="preview">
+        <canvas id="c" width="1080" height="1920"></canvas>
+        <div class="guide" id="guide"></div>
+      </div>
+    </main>
+
+    <script>
+      const W = 1080, H = 1920;
+      // Every word must sit inside the 1:1 crop (y 420..1500) with a margin.
+      const PAD = 80, TOP = 420 + PAD, BOTTOM = 1500 - PAD, MAXW = W - PAD * 2;
+      const CYAN = '#5be3ff', MAGENTA = '#ff5fc0', INK3 = '#b8b8b8';
+      const DISPLAY = 'Unbounded', BODY = '"Space Grotesk"';
+      // Same path as src/components/Logo.astro.
+      const MARK = new Path2D(
+        'M182 0H818A182 182 0 0 1 1000 182V818A182 182 0 0 1 818 1000H182A182 182 0 0 1 0 818V182A182 182 0 0 1 182 0Z' +
+          'M219 221H781V783H219ZM273 323H392V442H273ZM608 323H727V442H608Z' +
+          'M288 643H374V673H624V643H710V684A78 78 0 0 1 632 762H366A78 78 0 0 1 288 684Z'
+      );
+
+      const form = document.getElementById('form');
+      const canvas = document.getElementById('c');
+      const ctx = canvas.getContext('2d');
+      let photo = null;
+
+      // Each format turns the form into: small label, big display lines, small lines under.
+      const FORMATS = {
+        mashup(f) {
+          const tracks = f.tracks.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
+            const i = l.indexOf(' - ');
+            return i < 0 ? { title: l, artist: '' } : { artist: l.slice(0, i), title: l.slice(i + 3) };
+          });
+          return {
+            label: 'Mashup',
+            big: tracks.flatMap((t, i) => (i ? ['×', t.title] : [t.title])),
+            small: tracks.map((t) => t.artist).filter(Boolean),
+          };
+        },
+        song: (f) => ({
+          label: 'Out now',
+          big: [f.songTitle],
+          small: [f.songArtist, f.songVersion && `(${f.songVersion})`].filter(Boolean),
+        }),
+        haven: (f) => ({
+          label: 'Haven',
+          big: ['#' + String(f.episode).padStart(3, '0')],
+          small: [f.havenSub],
+        }),
+        custom: (f) => ({ label: '', big: [f.customTitle], small: [f.customSub].filter(Boolean) }),
+      };
+
+      // Word-wrap `text` at `size`, shrinking until it fits MAXW in at most maxLines.
+      function wrap(text, font, size, maxLines) {
+        for (; size > 20; size -= 4) {
+          ctx.font = font(size);
+          const lines = [];
+          let cur = '';
+          for (const word of text.split(/\s+/)) {
+            const next = cur ? cur + ' ' + word : word;
+            if (cur && ctx.measureText(next).width > MAXW) { lines.push(cur); cur = word; }
+            else cur = next;
+          }
+          lines.push(cur);
+          if (lines.length <= maxLines && lines.every((l) => ctx.measureText(l).width <= MAXW)) return { lines, size };
+        }
+        return { lines: [text], size };
+      }
+
+      function draw() {
+        const f = Object.fromEntries(new FormData(form));
+        const d = FORMATS[f.format](f);
+        const label = (f.label || d.label).toUpperCase();
+
+        // Google Fonts splits latin-ext (č, ř, ů…) into its own file, fetched only
+        // once some text needs it: load it for this text, then redraw.
+        const text = [label, ...d.big, ...d.small].join('');
+        const fonts = [`800 100px ${DISPLAY}`, `600 30px ${BODY}`];
+        if (!fonts.every((ft) => document.fonts.check(ft, text)))
+          Promise.all(fonts.map((ft) => document.fonts.load(ft, text))).then(() => fonts.every((ft) => document.fonts.check(ft, text)) && draw());
+
+        ctx.fillStyle = '#0a0a0a';
+        ctx.fillRect(0, 0, W, H);
+
+        if (photo) {
+          const s = Math.max(W / photo.width, H / photo.height);
+          const pw = photo.width * s, ph = photo.height * s;
+          ctx.drawImage(photo, (W - pw) / 2, (H - ph) * (f.photoY / 100), pw, ph);
+          ctx.fillStyle = `rgba(0,0,0,${f.dim / 100})`;
+          ctx.fillRect(0, 0, W, H);
+        }
+        // Scrims top and bottom so the text band reads over any photo.
+        const g = ctx.createLinearGradient(0, 0, 0, H);
+        g.addColorStop(0, 'rgba(0,0,0,.7)');
+        g.addColorStop(0.3, 'rgba(0,0,0,0)');
+        g.addColorStop(0.6, 'rgba(0,0,0,.25)');
+        g.addColorStop(1, 'rgba(0,0,0,.85)');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.textBaseline = 'alphabetic';
+        ctx.textAlign = 'left';
+
+        // Mark + label, top of the safe band.
+        ctx.save();
+        ctx.translate(PAD, TOP);
+        ctx.scale(0.08, 0.08);
+        ctx.fillStyle = '#fff';
+        ctx.fill(MARK, 'evenodd');
+        ctx.restore();
+        if (label) {
+          ctx.font = `600 30px ${BODY}`;
+          ctx.letterSpacing = '8px';
+          ctx.fillStyle = CYAN;
+          ctx.fillRect(PAD + 110, TOP + 38, 60, 4);
+          ctx.fillStyle = INK3;
+          ctx.fillText(label, PAD + 190, TOP + 51);
+          ctx.letterSpacing = '0px';
+        }
+
+        // Big block: each entry wrapped on its own, then the whole block shrunk to fit the band.
+        const bigFont = (s) => `800 ${s}px ${DISPLAY}`;
+        const smallFont = (s) => `600 ${s}px ${BODY}`;
+        const small = d.small.map((t) => wrap(t, smallFont, 44, 2));
+        const smallH = small.reduce((h, b) => h + b.lines.length * b.size * 1.25, 0);
+        const room = BOTTOM - 110 - (TOP + 130) - smallH - (small.length ? 40 : 0);
+        let size = d.big.length > 1 ? 120 : 170;
+        let blocks;
+        for (;; size -= 6) {
+          blocks = d.big.map((t) => (t === '×' ? { lines: ['×'], size: size * 0.6 } : wrap(t, bigFont, size, 3)));
+          const h = blocks.reduce((h, b) => h + b.lines.length * b.size * 1.05, 0);
+          if (h <= room || size < 40) break;
+        }
+        const bigH = blocks.reduce((h, b) => h + b.lines.length * b.size * 1.05, 0);
+        let y = TOP + 130 + (room - bigH) / 2;
+
+        for (const b of blocks) {
+          ctx.font = bigFont(b.size);
+          for (const line of b.lines) {
+            y += b.size * 1.05;
+            const w = ctx.measureText(line).width;
+            const grad = ctx.createLinearGradient(PAD, y - b.size, PAD + w, y);
+            grad.addColorStop(0, CYAN);
+            grad.addColorStop(1, MAGENTA);
+            ctx.fillStyle = line === '×' ? '#fff' : grad;
+            ctx.fillText(line, PAD, y - b.size * 0.15);
+          }
+        }
+        y += 40;
+        ctx.fillStyle = '#fff';
+        for (const b of small) {
+          ctx.font = smallFont(b.size);
+          for (const line of b.lines) { y += b.size * 1.25; ctx.fillText(line, PAD, y - b.size * 0.25); }
+        }
+
+        // Footer: rule + wordmark, bottom of the safe band.
+        const rule = ctx.createLinearGradient(PAD, 0, PAD + 90, 0);
+        rule.addColorStop(0, CYAN);
+        rule.addColorStop(1, MAGENTA);
+        ctx.fillStyle = rule;
+        ctx.fillRect(PAD, BOTTOM - 62, 90, 4);
+        ctx.fillStyle = '#fff';
+        ctx.font = `700 34px ${BODY}`;
+        ctx.letterSpacing = '6px';
+        ctx.fillText('THOMPSON', PAD, BOTTOM);
+        ctx.letterSpacing = '0px';
+
+        document.getElementById('guide').hidden = !f.guide;
+        for (const el of form.querySelectorAll('[data-for]')) el.hidden = el.dataset.for !== f.format;
+      }
+
+      form.addEventListener('input', draw);
+      form.photo.addEventListener('change', async () => {
+        const file = form.photo.files[0];
+        photo = file ? await createImageBitmap(file) : null;
+        draw();
+      });
+
+      document.getElementById('save').addEventListener('click', () => {
+        canvas.toBlob(async (blob) => {
+          const name = `ig-${form.format.value}-${Date.now()}.png`;
+          const file = new File([blob], name, { type: 'image/png' });
+          // On a phone the share sheet is the only way to land it in Photos.
+          if (navigator.canShare?.({ files: [file] })) {
+            try { await navigator.share({ files: [file] }); return; } catch (e) { if (e.name === 'AbortError') return; }
+          }
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = name;
+          a.click();
+          URL.revokeObjectURL(a.href);
+        }, 'image/png');
+      });
+
+      Promise.all([
+        document.fonts.load(`800 100px ${DISPLAY}`),
+        document.fonts.load(`600 30px ${BODY}`),
+        document.fonts.load(`700 30px ${BODY}`),
+      ]).then(draw, draw);
+      draw();
+    </script>
+  </body>
+</html>
