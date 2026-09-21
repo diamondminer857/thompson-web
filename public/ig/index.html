@@ -92,13 +92,14 @@
         <label>Formát
           <select name="format">
             <option value="mashup">Mashup</option>
+            <option value="transition">Transition</option>
             <option value="song">Song</option>
             <option value="haven">Haven</option>
             <option value="custom">Vlastní</option>
           </select>
         </label>
 
-        <div data-for="mashup">
+        <div data-for="mashup transition">
           <label>Tracky
             <textarea name="tracks">Artist One - First Song
 Artist Two - Second Song</textarea>
@@ -154,19 +155,25 @@ Artist Two - Second Song</textarea>
       const ctx = canvas.getContext('2d');
       let photo = null;
 
+      // Titles big with `sep` between them, artists small underneath.
+      function tracklist(f, label, sep) {
+        const tracks = f.tracks.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
+          const i = l.indexOf(' - ');
+          return i < 0 ? { title: l, artist: '' } : { artist: l.slice(0, i), title: l.slice(i + 3) };
+        });
+        return {
+          label,
+          big: tracks.flatMap((t, i) => (i ? [SEP + sep, t.title] : [t.title])),
+          small: tracks.map((t) => t.artist).filter(Boolean),
+        };
+      }
+      // Marks a separator entry so a track literally titled "×" isn't mistaken for one.
+      const SEP = '\u0000';
+
       // Each format turns the form into: small label, big display lines, small lines under.
       const FORMATS = {
-        mashup(f) {
-          const tracks = f.tracks.split('\n').map((l) => l.trim()).filter(Boolean).map((l) => {
-            const i = l.indexOf(' - ');
-            return i < 0 ? { title: l, artist: '' } : { artist: l.slice(0, i), title: l.slice(i + 3) };
-          });
-          return {
-            label: 'Mashup',
-            big: tracks.flatMap((t, i) => (i ? ['×', t.title] : [t.title])),
-            small: tracks.map((t) => t.artist).filter(Boolean),
-          };
-        },
+        mashup: (f) => tracklist(f, 'Mashup', '×'),
+        transition: (f) => tracklist(f, 'Transition', '↓'),
         song: (f) => ({
           label: 'Out now',
           big: [f.songTitle],
@@ -255,7 +262,7 @@ Artist Two - Second Song</textarea>
         let size = d.big.length > 1 ? 120 : 170;
         let blocks;
         for (;; size -= 6) {
-          blocks = d.big.map((t) => (t === '×' ? { lines: ['×'], size: size * 0.6 } : wrap(t, bigFont, size, 3)));
+          blocks = d.big.map((t) => (t[0] === SEP ? { lines: [t.slice(1)], size: size * 0.6, sep: true } : wrap(t, bigFont, size, 3)));
           const h = blocks.reduce((h, b) => h + b.lines.length * b.size * 1.05, 0);
           if (h <= room || size < 40) break;
         }
@@ -270,7 +277,7 @@ Artist Two - Second Song</textarea>
             const grad = ctx.createLinearGradient(PAD, y - b.size, PAD + w, y);
             grad.addColorStop(0, CYAN);
             grad.addColorStop(1, MAGENTA);
-            ctx.fillStyle = line === '×' ? '#fff' : grad;
+            ctx.fillStyle = b.sep ? '#fff' : grad;
             ctx.fillText(line, PAD, y - b.size * 0.15);
           }
         }
@@ -294,7 +301,7 @@ Artist Two - Second Song</textarea>
         ctx.letterSpacing = '0px';
 
         document.getElementById('guide').hidden = !f.guide;
-        for (const el of form.querySelectorAll('[data-for]')) el.hidden = el.dataset.for !== f.format;
+        for (const el of form.querySelectorAll('[data-for]')) el.hidden = !el.dataset.for.split(' ').includes(f.format);
       }
 
       form.addEventListener('input', draw);
