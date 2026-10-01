@@ -101,4 +101,5 @@ export default {
   'media.haven002': 'Haven 002 artwork',
   'media.haven003': 'Haven 003 artwork',
   'media.haven004': 'Haven 004 artwork',
+  'media.haven005': 'Haven 005 artwork',
 } as const;
