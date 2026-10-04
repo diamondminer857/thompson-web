@@ -109,8 +109,7 @@ export const events: Event[] = [
     end: '2026-11-21T04:00:00+01:00',
     place: 'ÁČKO Music Club, Industrial stage, Ostrava-Dubina',
     address: 'Václava Košaře 116/8, Ostrava-Dubina, Czechia',
-    // No event page yet; the flyer only gives the address. Swap for the FB event when there is one.
-    url: 'https://mapy.cz/?q=V%C3%A1clava%20Ko%C5%A1a%C5%99e%20116%2F8%2C%20Ostrava',
+    url: 'https://www.facebook.com/events/1608321437053166/',
   },
 ];
 
