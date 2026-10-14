@@ -38,7 +38,6 @@ export const site = {
   mixcloud: 'https://www.mixcloud.com/Thompson111/',
   youtube: 'https://www.youtube.com/@thompson42',
 
-  /** Needs a Cloudflare Email Routing rule on the domain to actually deliver. */
   bookingEmail: 'tomholinka@seznam.cz',
 } as const;
 
