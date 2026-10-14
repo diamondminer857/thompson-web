@@ -127,8 +127,6 @@ build settings. Unset, no beacon is emitted.
 
 ## Still to do
 
-- `contact@thompsondj.com` is on the page but does not exist yet: add a
-  Cloudflare Email Routing rule for it, or mail to it will bounce.
 - Regenerate the poster QR codes against `https://thompsondj.com/p1` etc.
 - `nextEvent.end` for Festival na Rychtě is a placeholder (22:00) — the listing
   gives no finish time. Correct it so the calendar entry is honest.

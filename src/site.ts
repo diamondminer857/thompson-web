@@ -39,7 +39,7 @@ export const site = {
   youtube: 'https://www.youtube.com/@thompson42',
 
   /** Needs a Cloudflare Email Routing rule on the domain to actually deliver. */
-  bookingEmail: 'contact@thompsondj.com',
+  bookingEmail: 'tomholinka@seznam.cz',
 } as const;
 
 /** `bio.short`/`bio.long` live in `src/i18n/*.ts` (`bio.short` / `bio.long`

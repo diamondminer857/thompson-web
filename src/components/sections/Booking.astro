@@ -32,11 +32,11 @@ const t = useTranslations(getLangFromUrl(Astro.url));
     padding-inline: var(--gutter);
     font-family: var(--font-display);
     font-weight: 700;
-    /* This font measures ~16.4x its own font-size for "contact@thompsondj.com";
+    /* This font measures ~14.5x its own font-size for "tomholinka@seznam.cz";
        dividing the available width (the container minus both gutters) by
        that gives the size that exactly fills the band edge to edge. The
        clamp bounds are outer guardrails, not the normal operating range. */
-    font-size: clamp(1rem, calc((100cqi - var(--gutter) * 2) / 16.4), 7rem);
+    font-size: clamp(1rem, calc((100cqi - var(--gutter) * 2) / 14.5), 7rem);
     letter-spacing: -0.02em;
     white-space: nowrap;
     text-decoration-thickness: 1px;
