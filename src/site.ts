@@ -24,7 +24,7 @@ export const site = {
    * these live here rather than in `src/i18n/*.ts`. `base` is the one field
    * that does still vary (Krnov, CZ / Krnov, ČR) — see `site.base` in the
    * dictionaries. */
-  strapline: 'Trance & Melodic Techno',
+  strapline: 'Uplifting / Progressive / Mainstage Trance',
 
   /** The one line on the landing screen. Also kept English on the Czech
    * page: "haven" is the mix series' own name, not a generic word — a

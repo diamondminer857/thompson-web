@@ -16,11 +16,11 @@ export default {
 
   'meta.description': 'Haven: měsíční mixová série. Booking otevřený.',
 
-  'site.base': 'Krnov, ČR',
+  'site.base': 'Krnov, ČR / Lausanne, CH (2026)',
 
-  'bio.short': 'Trance a Melodic Techno z Krnova, pro sály, které chtějí vzlétnout.',
+  'bio.short': 'Uplifting, progressive a mainstage trance pro sály, které chtějí vzlétnout.',
   'bio.long':
-    'Tomáš Holinka nahrává a hraje jako THOMPSON: Trance a Melodic Techno z Krnova. S DJingem začal v červenci 2025, kdy si pořídil Pioneer DDJ-FLX4 po celoživotním poslechu elektronické hudby. Studium v Nizozemsku ho přivedlo k trance a odtud se jeho zvuk začal formovat. Haven, jeho měsíční mixová série, je místo, kde zní naplno, a vlastní produkce se právě rodí. Booking je otevřený pro kluby, festivaly i soukromé akce.',
+    'Tomáš Holinka hraje jako THOMPSON: uplifting, progressive, mainstage a bouncy trance z Krnova, do prosince 2026 dočasně v Lausanne ve Švýcarsku. K trance ho přivedlo studium na univerzitě v Nizozemsku a s DJingem začal v červenci 2025. Jeho sety jsou melodické a emotivní, s energií, jasnou hudební gradací a silným spojením s publikem; občas zazní i tech trance nebo energické melodic techno. Haven, jeho měsíční trance mixová série, je místo, kde tenhle zvuk zní naplno. Booking je otevřený pro klubové akce, festivaly, opening a support sety i delší vystoupení.',
 
   // 'band.line' deliberately omitted — falls back to the English string in
   // `./en.ts`. Kept English on the Czech page too, same call as `headline`

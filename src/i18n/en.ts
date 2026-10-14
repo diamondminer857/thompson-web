@@ -13,11 +13,11 @@ export default {
 
   'meta.description': 'Haven: a monthly mix series. Bookings open.',
 
-  'site.base': 'Krnov, CZ',
+  'site.base': 'Krnov, CZ / Lausanne, CH (2026)',
 
-  'bio.short': 'Trance and melodic techno from Krnov, built for rooms that want to lift.',
+  'bio.short': 'Uplifting, progressive and mainstage trance, built for rooms that want to lift.',
   'bio.long':
-    'Tomáš Holinka records and plays as THOMPSON: trance and melodic techno out of Krnov, Czechia. He started DJing in July 2025, picking up a Pioneer DDJ-FLX4 after a lifetime of listening to electronic music. A move to the Netherlands for university pulled him toward trance, and the sound took shape from there. Haven, his monthly mix series, is where it gets laid out in full, and productions of his own are now in the works. Booking is open for clubs, festivals and private events.',
+    'Tomáš Holinka plays as THOMPSON: uplifting, progressive, mainstage and bouncy trance, from Krnov, Czechia, and based in Lausanne, Switzerland, until December 2026. His interest in trance grew during his university studies in the Netherlands, and he started DJing in July 2025. His sets are melodic and emotionally engaging, with real drive, a clear musical progression and a strong connection with the crowd; tech trance and energetic melodic techno make occasional appearances. Haven, his monthly trance mix series, is where that sound is laid out in full. Bookings are open for club nights, festivals, opening and support slots, and extended sets.',
 
   'band.line': 'We don’t just listen to music. We feel it.',
   'band.ariaLabel': '{line}, THOMPSON live',
