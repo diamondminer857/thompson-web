@@ -16,7 +16,8 @@
     "youtube:thumb": "node scripts/youtube-thumbnail/generate.mjs",
     "intro:video": "node scripts/haven-intro/generate.mjs",
     "fx:video": "node scripts/haven-fx/generate.mjs",
-    "nowplaying:video": "node scripts/haven-nowplaying/generate.mjs"
+    "nowplaying:video": "node scripts/haven-nowplaying/generate.mjs",
+    "banner:fidor": "node scripts/fidor-banner/generate.mjs"
   },
   "dependencies": {
     "animejs": "^4.5.0",
