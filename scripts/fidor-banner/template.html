@@ -1,0 +1,320 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Space+Grotesk:wght@500;600;700&display=block"
+      rel="stylesheet"
+    />
+    <style>
+      /* Real millimetres. The page is the trim (1000 mm) plus bleed on every
+         side; nothing that matters sits outside .trim minus --safe. */
+      @page {
+        size: {{PAGE}}mm {{PAGE}}mm;
+        margin: 0;
+      }
+
+      :root {
+        --paper: #07070c;
+        --ink: #fff;
+        --ink-3: color-mix(in srgb, var(--ink) 74%, var(--paper));
+        --cyan: #5be3ff;
+        --magenta: #ff5fc0;
+        --violet: #b489ff;
+        --bleed: {{BLEED}}mm;
+        /* Clear of eyelets and hems. */
+        --safe: 60mm;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: {{PAGE}}mm;
+        height: {{PAGE}}mm;
+        overflow: hidden;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: 'Space Grotesk', sans-serif;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      body {
+        position: relative;
+        isolation: isolate;
+      }
+
+      /* Face sits top right in portrait.jpg, so the photo hugs that corner
+         and fades out towards the copy column and the step list. */
+      .photo {
+        position: absolute;
+        z-index: -2;
+        top: 0;
+        right: 0;
+        width: calc(640mm + var(--bleed));
+        height: calc(800mm + var(--bleed));
+        background: url('{{PHOTO}}') 70% 0 / cover no-repeat;
+        -webkit-mask-image:
+          linear-gradient(to right, transparent 0%, black 45%),
+          linear-gradient(to bottom, black 55%, transparent 100%);
+        -webkit-mask-composite: source-in;
+        mask-image:
+          linear-gradient(to right, transparent 0%, black 45%),
+          linear-gradient(to bottom, black 55%, transparent 100%);
+        mask-composite: intersect;
+      }
+
+      .glow {
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background:
+          radial-gradient(45% 30% at 10% 75%, rgba(91, 227, 255, 0.16), transparent 70%),
+          radial-gradient(50% 35% at 30% 100%, rgba(180, 137, 255, 0.22), transparent 70%),
+          radial-gradient(40% 30% at 95% 100%, rgba(255, 95, 192, 0.2), transparent 70%);
+      }
+
+      .trim {
+        position: absolute;
+        inset: calc(var(--bleed) + var(--safe));
+        display: flex;
+        flex-direction: column;
+      }
+
+      .lockup {
+        display: flex;
+        align-items: center;
+        gap: 24mm;
+      }
+
+      .mark {
+        width: 92mm;
+        flex: none;
+        filter: drop-shadow(0 0 6mm rgba(0, 0, 0, 0.5));
+      }
+
+      .mark svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .name {
+        font-family: 'Unbounded', sans-serif;
+        font-weight: 800;
+        font-size: 70mm;
+        letter-spacing: 0.02em;
+        line-height: 1;
+      }
+
+      .strap {
+        margin-top: 7mm;
+        font-size: 19mm;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+      }
+
+      .headline {
+        margin-top: 50mm;
+        font-family: 'Unbounded', sans-serif;
+        font-weight: 800;
+        font-size: 108mm;
+        line-height: 0.98;
+        letter-spacing: -0.03em;
+        white-space: nowrap;
+        text-shadow: 0 0 10mm rgba(0, 0, 0, 0.5);
+      }
+
+      .grad {
+        background: linear-gradient(100deg, var(--cyan), var(--violet) 50%, var(--magenta));
+        background-clip: text;
+        -webkit-background-clip: text;
+        color: transparent;
+        text-shadow: none;
+        filter: drop-shadow(0 0 9mm rgba(255, 95, 192, 0.45));
+      }
+
+      .headline .grad {
+        display: block;
+      }
+
+      .bottom {
+        margin-top: auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 40mm;
+      }
+
+      .steps-col {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .steps {
+        display: flex;
+        flex-direction: column;
+        gap: 20mm;
+      }
+
+      .step {
+        display: flex;
+        align-items: center;
+        gap: 18mm;
+      }
+
+      .n {
+        flex: none;
+        display: grid;
+        place-items: center;
+        width: 78mm;
+        height: 78mm;
+        border: 2.2mm solid var(--c);
+        border-radius: 50%;
+        font-family: 'Unbounded', sans-serif;
+        font-weight: 800;
+        font-size: 40mm;
+        color: var(--c);
+        box-shadow: 0 0 9mm -1mm var(--c), inset 0 0 9mm -3mm var(--c);
+      }
+
+      .step:nth-child(1) {
+        --c: var(--cyan);
+      }
+      .step:nth-child(2) {
+        --c: var(--violet);
+      }
+      .step:nth-child(3) {
+        --c: var(--magenta);
+      }
+
+      .t {
+        font-family: 'Unbounded', sans-serif;
+        font-weight: 800;
+        font-size: var(--t, 54mm);
+        line-height: 1.05;
+        white-space: nowrap;
+      }
+
+      .s {
+        margin-top: 4mm;
+        display: flex;
+        align-items: center;
+        gap: 6mm;
+        font-size: 23mm;
+        font-weight: 600;
+        line-height: 1.15;
+        color: var(--ink-3);
+      }
+
+      .s span {
+        text-wrap: balance;
+      }
+
+      .s b {
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .s svg {
+        flex: none;
+        width: 22mm;
+        height: 22mm;
+        fill: var(--ink);
+      }
+
+      .qr-block {
+        flex: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8mm;
+      }
+
+      /* Dark on white: the one combination every phone camera reads. The
+         padding is the quiet zone. */
+      .qr {
+        width: 230mm;
+        background: #fff;
+        border-radius: 7mm;
+        padding: 10mm;
+        box-shadow: 0 0 0 1.5mm var(--cyan), 0 0 14mm var(--cyan);
+      }
+
+      .qr svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .qr-cta {
+        display: flex;
+        align-items: center;
+        gap: 6mm;
+        font-weight: 700;
+        font-size: 19mm;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .qr-cta svg {
+        width: 20mm;
+        height: 20mm;
+        fill: var(--ink);
+      }
+
+      .footer {
+        margin-top: 26mm;
+        font-size: 19mm;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        color: var(--ink-3);
+      }
+
+      .footer b {
+        color: var(--ink);
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="photo"></div>
+    <div class="glow"></div>
+
+    <div class="trim">
+      <div class="lockup">
+        <div class="mark">{{MARK}}</div>
+        <div>
+          <div class="name">THOMPSON</div>
+          <div class="strap">{{STRAP}}</div>
+        </div>
+      </div>
+
+      <div class="headline">
+        <span>Find your</span>
+        <span class="grad">haven.</span>
+      </div>
+
+      <div class="bottom">
+        <div class="steps-col">
+          <div class="steps">{{STEPS}}</div>
+        </div>
+        <div class="qr-block">
+          <div class="qr"></div>
+          <div class="qr-cta">{{IG}} Naskenuj</div>
+        </div>
+      </div>
+
+      <div class="footer"><b>thompsondj.com</b> · Booking: {{EMAIL}}</div>
+    </div>
+  </body>
+</html>
