@@ -379,6 +379,17 @@ const attrs = (it: Item) => ({
     animation: spin 1.8s linear infinite;
   }
 
+  .ctl.blink .cap {
+    animation: blink 0.5s steps(2, jump-none) infinite;
+  }
+
+  @keyframes blink {
+    to {
+      fill: #2a2a2f;
+      filter: none;
+    }
+  }
+
   [data-reverse] .spin {
     animation-direction: reverse;
   }

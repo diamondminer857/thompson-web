@@ -563,6 +563,9 @@ export class Deck {
   bendTimer = 0;
   quantize = true;
   loop?: { a: number; b: number; on: boolean };
+  pendingIn?: number;
+  adjust?: 'in' | 'out';
+  holdTimer = 0;
   padMode = 'hot';
   shift = false;
   keylock = true;
@@ -734,28 +737,79 @@ export class Deck {
     return true;
   }
 
+  // --- loops (rekordbox / CDJ behaviour) ---
+  // IN marks a pending start; OUT closes the loop and it plays at once.
+  // While a loop runs, IN / OUT toggle adjust mode: the jog moves that edge.
   setLoop(a: number, b: number) {
+    const p = this.now();
     this.slipStart();
     this.loop = { a, b, on: true };
-    this.applyLoop();
+    this.pendingIn = undefined;
+    this.adjust = undefined;
+    this.fitLoop(p);
+  }
+  // Keep the audio and our playhead maths in agreement when the loop region
+  // changes under the playhead (new OUT behind it, a halved loop…).
+  fitLoop(p = this.now()) {
+    const l = this.loop;
+    if (!l || !this.src) return;
+    if (l.on && this.dir > 0 && p >= l.b) return this.startSrc(l.a + ((p - l.a) % (l.b - l.a)));
+    this.pos = p;
+    this.t0 = now();
+    Object.assign(this.src, { loop: l.on && this.dir > 0, loopStart: l.a, loopEnd: l.b });
+  }
+  applyLoop() {
+    this.fitLoop();
   }
   exitLoop() {
     if (!this.loop?.on) return;
+    const p = this.now();
     this.loop.on = false;
-    this.applyLoop();
+    this.adjust = undefined;
+    this.fitLoop(p);
     this.slipEnd();
   }
-  applyLoop() {
-    if (!this.src || !this.loop) return;
-    this.pos = this.now();
-    this.t0 = now();
-    Object.assign(this.src, { loop: this.loop.on && this.dir > 0, loopStart: this.loop.a, loopEnd: this.loop.b });
+  reloop() {
+    const l = this.loop;
+    if (l?.on) return this.exitLoop();
+    if (!l?.b) return;
+    this.setLoop(l.a, l.b);
+    this.seek(l.a);
   }
+  /** Auto loop of n beats from the beat you're in. */
   beatLoop(beats: number) {
     if (this.loop?.on && Math.abs(this.loop.b - this.loop.a - beats * this.beatLen) < 0.001) return this.exitLoop();
-    const unit = Math.min(1, beats);
-    const a = this.loop?.on ? this.loop.a : this.snap(this.now(), unit);
+    const unit = Math.min(1, beats) * this.beatLen;
+    const a = this.loop?.on ? this.loop.a : this.quantize ? Math.floor(this.now() / unit + 0.001) * unit : this.now();
     this.setLoop(a, a + beats * this.beatLen);
+  }
+  resize(f: number) {
+    const l = this.loop;
+    if (!l?.on) return;
+    l.b = l.a + clamp((l.b - l.a) * f, this.beatLen / 8, 64 * this.beatLen);
+    this.fitLoop();
+  }
+  loopIn() {
+    if (this.loop?.on) this.adjust = this.adjust === 'in' ? undefined : 'in';
+    else this.pendingIn = this.snap(this.now());
+  }
+  loopOut() {
+    if (this.loop?.on) {
+      this.adjust = this.adjust === 'out' ? undefined : 'out';
+      return;
+    }
+    const a = this.pendingIn;
+    const b = this.snap(this.now());
+    if (a !== undefined && b > a + 0.05) this.setLoop(a, b);
+  }
+  /** Jog in adjust mode: one turn = one beat. */
+  adjustBy(deg: number) {
+    const l = this.loop;
+    if (!l?.on || !this.adjust) return;
+    const d = (deg / 360) * this.beatLen;
+    if (this.adjust === 'in') l.a = clamp(l.a + d, 0, l.b - 0.03);
+    else l.b = clamp(l.b + d, l.a + 0.03, this.dur);
+    this.fitLoop();
   }
 
   hotDown(i: number, del = false) {
@@ -795,7 +849,7 @@ export class Deck {
   load(t: Lib) {
     render(t);
     this.pause(0);
-    Object.assign(this, { lib: t, pos: t.cue, loop: undefined, key: 0, shadow: undefined, view: 'wave' });
+    Object.assign(this, { lib: t, pos: t.cue, loop: undefined, pendingIn: undefined, adjust: undefined, key: 0, shadow: undefined, view: 'wave' });
     this.retune();
   }
 

@@ -26,6 +26,24 @@ const JUMPS = [4, 4, 8, 8, 16, 16, 32, 32];
 const notes = new Map<Deck, { text: string; until: number }>();
 const note = (d: Deck, text: string) => notes.set(d, { text, until: performance.now() + 1200 });
 
+const beatsLabel = (n: number) =>
+  n < 1 ? `1/${Math.round(1 / n)} úderu` : n === 1 ? '1 úder' : n < 5 ? `${n} údery` : `${n} úderů`;
+const loopLabel = (d: Deck) => (d.loop?.on ? `LOOP ${beatsLabel(+((d.loop.b - d.loop.a) / d.beatLen).toFixed(2))}` : 'EXIT');
+
+// Memory cues: saved points you can CALL back to later.
+function memAdd(d: Deck) {
+  const t = d.lib!;
+  const p = d.loop?.on ? d.loop.a : d.playing ? d.snap(d.now()) : t.cue;
+  if (!t.mem.some((m) => Math.abs(m - p) < 0.05)) t.mem.push(p);
+}
+function memDelete(d: Deck) {
+  const t = d.lib!;
+  const p = d.playing ? d.now() : t.cue;
+  let best = -1;
+  t.mem.forEach((m, i) => (best < 0 || Math.abs(m - p) < Math.abs(t.mem[best] - p)) && (best = i));
+  if (best >= 0) t.mem.splice(best, 1);
+}
+
 function beatJump(d: Deck, beats: number) {
   d.seek(d.now() + beats * d.beatLen);
   const n = Math.abs(beats);
@@ -192,7 +210,8 @@ export function press(el: SVGElement, frac = 0) {
       else d!.play();
       break;
     case 'cue':
-      d!.cueDown();
+      if (shift) d!.seek(0); // SHIFT + CUE = back to the track start
+      else d!.cueDown();
       break;
     case 'shift':
       d!.shift = !d!.shift;
@@ -242,37 +261,58 @@ export function press(el: SVGElement, frac = 0) {
     case 'jog-mode':
       d!.vinyl = !d!.vinyl;
       break;
-    case 'loop-in':
-      if (shift) d!.beatLoop(4);
-      else d!.loop = { a: d!.snap(d!.now()), b: 0, on: false };
-      break;
-    case 'loop-out': {
-      const l = d!.loop;
-      const b = d!.snap(d!.now());
-      if (l && !l.on && b > l.a + 0.05) d!.setLoop(l.a, b);
-      break;
-    }
-    case 'reloop': {
-      const l = d!.loop;
-      if (l?.on) d!.exitLoop();
-      else if (l?.b) {
-        d!.setLoop(l.a, l.b);
-        d!.seek(l.a);
-      }
-      break;
-    }
-    case 'loop-half':
-    case 'loop-double': {
-      if (shift) {
-        d!.call(fn === 'loop-half' ? -1 : 1);
+    // --- loops: rekordbox's FLX4 mapping and the CDJ-3000's buttons ---
+    case 'loop-in': {
+      const x = d!;
+      if (!x.playing && !x.loop?.on && el.closest('#cdj')) {
+        x.lib!.cue = x.snap(x.pos); // CDJ: LOOP IN/CUE while paused sets the cue
+        note(x, 'CUE');
         break;
       }
-      const l = d!.loop;
-      if (!l?.on) break;
-      l.b = l.a + Math.max(d!.beatLen / 8, (l.b - l.a) * (fn === 'loop-half' ? 0.5 : 2));
-      d!.applyLoop();
+      x.loopIn();
+      note(x, x.adjust === 'in' ? 'LOOP IN – doladění jogem' : x.loop?.on ? 'LOOP IN ✓' : 'LOOP IN – teď dej OUT');
+      // CDJ: hold LOOP IN for a second = 4-beat auto loop.
+      if (el.closest('#cdj') && !x.loop?.on) {
+        clearTimeout(x.holdTimer);
+        x.holdTimer = window.setTimeout(() => {
+          const a = x.pendingIn;
+          if (a === undefined) x.beatLoop(4);
+          else x.setLoop(a, a + 4 * x.beatLen); // from where IN was pressed
+          note(x, 'LOOP 4 údery');
+          ui();
+        }, 1000);
+      }
       break;
     }
+    case 'loop-out':
+      d!.loopOut();
+      note(d!, d!.adjust === 'out' ? 'LOOP OUT – doladění jogem' : d!.loop?.on ? loopLabel(d!) : d!.pendingIn === undefined ? 'Nejdřív IN' : 'OUT musí být za IN');
+      break;
+    case 'reloop':
+      d!.reloop();
+      note(d!, d!.loop?.on ? `RELOOP ${loopLabel(d!)}` : 'EXIT');
+      break;
+    case 'loop-4exit':
+      if (shift) d!.reloop();
+      else if (d!.loop?.on) d!.exitLoop();
+      else d!.beatLoop(4);
+      note(d!, d!.loop?.on ? loopLabel(d!) : 'EXIT');
+      break;
+    case 'loop-auto':
+      if (d!.loop?.on) d!.resize(+arg === 4 ? 0.5 : 2);
+      else d!.beatLoop(+arg);
+      note(d!, loopLabel(d!));
+      break;
+    case 'loop-call':
+      if (d!.loop?.on) {
+        d!.resize(+arg < 0 ? 0.5 : 2);
+        note(d!, loopLabel(d!));
+      } else if (shift) {
+        if (+arg < 0) memDelete(d!);
+        else memAdd(d!);
+        note(d!, +arg < 0 ? 'CUE/LOOP smazán' : 'CUE/LOOP uložen');
+      } else d!.call(+arg);
+      break;
     case 'jump':
       beatJump(d!, +arg);
       break;
@@ -289,22 +329,20 @@ export function press(el: SVGElement, frac = 0) {
       d!.load(library[mod(d!.lib!.i + 1, library.length)]);
       break;
     case 'call':
-      d!.call(+arg);
+      // CDJ CUE/LOOP CALL: during a loop it sets the loop size instead.
+      if (d!.loop?.on) {
+        d!.resize(+arg < 0 ? 0.5 : 2);
+        note(d!, loopLabel(d!));
+      } else d!.call(+arg);
       break;
-    case 'mem-add': {
-      const t = d!.lib!;
-      const p = d!.playing ? d!.snap(d!.now()) : t.cue;
-      if (!t.mem.some((m) => Math.abs(m - p) < 0.05)) t.mem.push(p);
+    case 'mem-add':
+      memAdd(d!);
+      note(d!, 'MEMORY uloženo');
       break;
-    }
-    case 'mem-delete': {
-      const t = d!.lib!;
-      const p = d!.playing ? d!.now() : t.cue;
-      let best = -1;
-      t.mem.forEach((m, i) => (best < 0 || Math.abs(m - p) < Math.abs(t.mem[best] - p)) && (best = i));
-      if (best >= 0) t.mem.splice(best, 1);
+    case 'mem-delete':
+      memDelete(d!);
+      note(d!, 'DELETE');
       break;
-    }
     case 'padmode':
       d!.padMode = shift ? ALT[arg] : arg;
       break;
@@ -495,6 +533,7 @@ export function release(el: SVGElement) {
   const { fn } = el.dataset;
   const d = deckOf(el);
   if (fn === 'cue' || fn === 'hotcue') d?.heldUp();
+  else if (fn === 'loop-in' && d) clearTimeout(d.holdTimer);
   else if (fn === 'pad' && d) {
     if (d.padMode === 'hot' || d.padMode === 'keyboard') d.heldUp();
     else d.padFxUp();
@@ -521,12 +560,14 @@ export function slide(el: SVGElement, frac: number) {
 /** `inner` = grabbed on the platter (scratch), not the side ring (nudge). */
 export function jogStart(el: SVGElement, inner: boolean) {
   const d = deckOf(el);
-  if (d && inner && d.vinyl) d.scratchStart();
+  // In loop adjust mode the jog moves the loop edge instead of the music.
+  if (d && inner && d.vinyl && !d.adjust) d.scratchStart();
 }
 export function jog(el: SVGElement, deg: number, dt: number) {
   const d = deckOf(el);
   if (!d) return;
-  if (d.scratch) d.scratchMove(deg * d.jogSens, dt);
+  if (d.adjust) d.adjustBy(deg);
+  else if (d.scratch) d.scratchMove(deg * d.jogSens, dt);
   else d.nudge(deg);
 }
 export function jogEnd(el: SVGElement) {
@@ -595,8 +636,12 @@ function lit(el: SVGElement, d?: Deck): boolean | undefined {
       case 'cue':
         return !!t && !d.playing;
       case 'loop-in':
+        return !!d.loop?.on || d.pendingIn !== undefined;
       case 'loop-out':
+      case 'loop-4exit':
         return !!d.loop?.on;
+      case 'loop-auto':
+        return !!d.loop?.on && Math.abs(d.loop.b - d.loop.a - +arg * d.beatLen) < 0.01;
       case 'reloop':
         return !!d.loop?.b && !d.loop.on;
       case 'sync':
@@ -689,6 +734,8 @@ export function ui() {
     const d = deckOf(el);
     const l = lit(el, d);
     if (l !== undefined) el.classList.toggle('on', l);
+    // IN / OUT blink while their loop edge is being adjusted with the jog.
+    if (d && (el.dataset.fn === 'loop-in' || el.dataset.fn === 'loop-out')) el.classList.toggle('blink', d.adjust === el.dataset.fn.slice(5));
     const { fn } = el.dataset;
     if (fn === 'tempo-range' && d) label(el, d.range === 1 ? 'WIDE' : `±${d.range * 100}%`);
     else if (fn === 'xf-assign') label(el, mix.assign[+el.dataset.ch!]);
@@ -834,6 +881,7 @@ function draw(v: View) {
   const tri = (s: number, c: string, up = false) => `<path d="M${X(s) - w / 120},${up ? zy + zh : zy}h${w / 60}l${-w / 120},${up ? -w / 80 : w / 80}z" fill="${c}"/>`;
   els.marks.innerHTML =
     tri(t.cue, '#ff9a2e') +
+    (d.pendingIn === undefined ? '' : `<path d="M${X(d.pendingIn)},${zy}V${zy + zh}" stroke="#ff9a2e" stroke-width="${w / 250}" stroke-dasharray="${w / 200}"/>`) +
     t.mem.map((m) => tri(m, '#ff4d4d', true)).join('') +
     t.hot.map((hc, i) => (hc === undefined ? '' : `<path d="M${X(hc)},${zy}V${zy + zh}" stroke="${COLORS[i]}" stroke-width="${w / 300}"/>`)).join('');
 
