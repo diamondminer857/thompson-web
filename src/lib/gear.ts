@@ -53,8 +53,9 @@ const shift = (items: Item[], ox: number) => items.map((i) => ({ ...i, x: i.x + 
 /* Shared texts — the same idea shows up on all three units. */
 const T = {
   loopIn:
-    'Loop = smyčka, kousek písničky, který se pořád dokola opakuje (třeba 4 údery bubnu).\nTímhle tlačítkem řekneš „smyčka začíná TADY“. Pak zmáčkneš OUT a kousek mezi tím se začne opakovat.',
-  loopOut: 'Řekne „smyčka končí TADY“. Od té chvíle se kousek mezi IN a OUT hraje pořád dokola, dokud ho nevypneš (RELOOP/EXIT).',
+    'Loop = smyčka, kousek písničky, který se pořád dokola opakuje (třeba 4 údery bubnu).\nTímhle tlačítkem řekneš „smyčka začíná TADY“ (na waveformu se objeví oranžová čárka). Písnička hraje dál – pak zmáčkneš OUT a kousek mezi IN a OUT se začne opakovat.\nKdyž už smyčka běží: IN přepne na doladění začátku – točením jogu ho posouváš, dalším IN potvrdíš.',
+  loopOut:
+    'Řekne „smyčka končí TADY“ – a smyčka se hned začne opakovat od IN.\nKdyž už smyčka běží: OUT přepne na doladění konce – točením jogu ho posouváš, dalším OUT potvrdíš.',
   reloop:
     'Když se smyčka opakuje: vypne ji a písnička normálně pokračuje dál.\nKdyž se nic neopakuje: skočí zpátky do poslední smyčky a pustí ji znovu.',
   sync:
@@ -97,11 +98,11 @@ const flxDeck = (ox: number, no: number): Part => ({
   deck: no - 1,
   items: shift(
     [
-      { k: 'btn', x: 10, y: 28, w: 22, h: 9, t: 'IN', fn: 'loop-in', n: 'LOOP IN / 4 BEAT', d: `${T.loopIn}\nSe SHIFT: rovnou zapne smyčku dlouhou 4 údery.` },
+      { k: 'btn', x: 10, y: 28, w: 22, h: 9, t: 'IN', fn: 'loop-in', n: 'LOOP IN', d: T.loopIn },
       { k: 'btn', x: 35, y: 28, w: 22, h: 9, t: 'OUT', n: 'LOOP OUT', fn: 'loop-out', d: T.loopOut },
-      { k: 'btn', x: 60, y: 28, w: 26, h: 9, t: 'RELOOP', n: 'RELOOP / EXIT', fn: 'reloop', d: T.reloop },
-      { k: 'btn', x: 92, y: 28, w: 16, h: 9, t: '½X', n: 'LOOP 1/2X', fn: 'loop-half', d: 'Zkrátí smyčku na polovinu (8 úderů → 4 → 2 → 1). Když to děláš rychle za sebou, zní to jako napětí před dropem.\nSe SHIFT: skok na předchozí uloženou záložku.' },
-      { k: 'btn', x: 111, y: 28, w: 16, h: 9, t: '2X', n: 'LOOP 2X', fn: 'loop-double', d: 'Prodlouží smyčku na dvojnásobek.\nSe SHIFT: skok na další uloženou záložku.' },
+      { k: 'btn', x: 60, y: 28, w: 26, h: 9, t: '4 BEAT/EXIT', n: '4 BEAT / EXIT', fn: 'loop-4exit', d: 'Když nic nesmyčkuje: hned spustí smyčku dlouhou 4 údery (1 takt) – nejrychlejší cesta ke smyčce.\nKdyž smyčka běží: ukončí ji (EXIT) a písnička hraje dál.\nSHIFT + tohle: znovu zapne poslední smyčku.' },
+      { k: 'btn', x: 92, y: 28, w: 16, h: 9, t: '◁ ½X', n: 'CUE/LOOP CALL ◁ (1/2X)', fn: 'loop-call', arg: -1, d: 'Bez smyčky: skočí na předchozí uložený bod nebo smyčku (memory cue).\nKdyž smyčka běží: zkrátí ji na polovinu (8 úderů → 4 → 2 → 1). Rychle za sebou to zní jako napětí před dropem.\nSHIFT: smaže uložený bod.' },
+      { k: 'btn', x: 111, y: 28, w: 16, h: 9, t: '2X ▷', n: 'CUE/LOOP CALL ▷ (2X)', fn: 'loop-call', arg: 1, d: 'Bez smyčky: skočí na další uložený bod nebo smyčku.\nKdyž smyčka běží: prodlouží ji na dvojnásobek.\nSHIFT: uloží aktuální bod (nebo smyčku) jako memory cue.' },
       { k: 'btn', x: 136, y: 28, w: 26, h: 9, t: 'SYNC', n: 'BEAT SYNC', fn: 'sync', d: `${T.sync}\nSe SHIFT: mění, jak moc jde tempo posuvníkem změnit.`, toggle: true, c: ORANGE },
       { k: 'fader', x: 149, y: 50, len: 100, v: 0.5, t: 'TEMPO', n: 'TEMPO slider', fn: 'tempo', d: T.tempo },
       { k: 'jog', x: 70, y: 104, r: 50, n: `JOG wheel (deck ${no})`, fn: 'jog', d: `Deck = jeden „přehrávač“. Pult má dva – levý a pravý – a na každém hraje jedna písnička.\nJog = velké kolo, něco jako gramofonová deska.\nZa bok: písničku na chvilku zrychlíš/zpomalíš – tak doladíš, aby bubny obou písniček šly přesně spolu.\nShora (položíš ruku): „chytíš desku“ – můžeš scratchovat nebo posunout písničku.\nNa webu: táhni myší za vnější okraj kola = postrčení, za vnitřek = scratch.` },
@@ -237,13 +238,15 @@ const cdj = (no: number): Part => ({
         c: PADS[i],
       }),
     ),
-    { k: 'btn', x: 10, y: 172, w: 30, h: 10, t: 'IN', n: 'LOOP IN', fn: 'loop-in', d: T.loopIn },
+    { k: 'btn', x: 10, y: 172, w: 30, h: 10, t: 'IN', n: 'LOOP IN / CUE', fn: 'loop-in', d: `${T.loopIn}\nPodržíš 1 sekundu = rovnou smyčka 4 údery. Když písnička stojí, uloží místo toho cue bod.` },
     { k: 'btn', x: 44, y: 172, w: 30, h: 10, t: 'OUT', n: 'LOOP OUT', fn: 'loop-out', d: T.loopOut },
     { k: 'btn', x: 78, y: 172, w: 34, h: 10, t: 'RELOOP', n: 'RELOOP / EXIT', fn: 'reloop', d: T.reloop },
-    { k: 'btn', x: 120, y: 172, w: 22, h: 10, t: '◀ JUMP', n: 'BEAT JUMP ◀', fn: 'jump', arg: -8, d: 'Skočí v písničce o 2 takty (8 úderů) dozadu. Rytmus zůstane sedět, takže to nikdo nepozná – hodí se, když potřebuješ písničku „natáhnout“.' },
-    { k: 'btn', x: 146, y: 172, w: 22, h: 10, t: 'JUMP ▶', n: 'BEAT JUMP ▶', fn: 'jump', arg: 8, d: 'Skočí o 2 takty (8 úderů) dopředu – třeba přeskočíš nudný kus.' },
-    { k: 'btn', x: 176, y: 172, w: 20, h: 10, t: '◀ CALL', n: 'CALL ◀', fn: 'call', arg: -1, d: 'Skočí na předchozí uložený startovní bod (memory cue) nebo smyčku v písničce.' },
-    { k: 'btn', x: 198, y: 172, w: 20, h: 10, t: 'CALL ▶', n: 'CALL ▶', fn: 'call', arg: 1, d: 'Skočí na další uložený startovní bod nebo smyčku.' },
+    { k: 'btn', x: 120, y: 172, w: 22, h: 10, t: '◀ JUMP', n: 'BEAT JUMP ◀', fn: 'jump', arg: -16, d: 'Skočí v písničce o 4 takty (16 úderů) dozadu. Rytmus zůstane sedět, takže to nikdo nepozná – hodí se, když potřebuješ písničku „natáhnout“.' },
+    { k: 'btn', x: 146, y: 172, w: 22, h: 10, t: 'JUMP ▶', n: 'BEAT JUMP ▶', fn: 'jump', arg: 16, d: 'Skočí o 4 takty (16 úderů) dopředu – třeba přeskočíš nudný kus.' },
+    { k: 'btn', x: 176, y: 172, w: 20, h: 10, t: '◀ CALL', n: 'CUE/LOOP CALL ◀', fn: 'call', arg: -1, d: 'Bez smyčky: skočí na předchozí uložený bod (memory cue) nebo smyčku.\nKdyž smyčka běží: zkrátí ji na polovinu.' },
+    { k: 'btn', x: 198, y: 172, w: 20, h: 10, t: 'CALL ▶', n: 'CUE/LOOP CALL ▶', fn: 'call', arg: 1, d: 'Bez smyčky: skočí na další uložený bod nebo smyčku.\nKdyž smyčka běží: prodlouží ji na dvojnásobek.' },
+    { k: 'btn', x: 78, y: 186, w: 16, h: 8, t: '4 BEAT', n: '4 BEAT / LOOP CUTTER', fn: 'loop-auto', arg: 4, d: 'Bez smyčky: hned spustí smyčku dlouhou 4 údery (1 takt).\nKdyž smyčka běží: zkrátí ji na polovinu (LOOP CUTTER).' },
+    { k: 'btn', x: 96, y: 186, w: 16, h: 8, t: '8 BEAT', n: '8 BEAT / LOOP DOUBLE', fn: 'loop-auto', arg: 8, d: 'Bez smyčky: hned spustí smyčku dlouhou 8 úderů (2 takty).\nKdyž smyčka běží: prodlouží ji na dvojnásobek.' },
     { k: 'btn', x: 220, y: 172, w: 30, h: 10, t: 'DELETE', n: 'DELETE', fn: 'mem-delete', d: 'Smaže uložený bod, na kterém zrovna jsi.' },
     { k: 'btn', x: 254, y: 172, w: 34, h: 10, t: 'MEMORY', n: 'MEMORY', fn: 'mem-add', d: 'Uloží aktuální startovní bod nebo smyčku natrvalo na flashku – příště už tam bude.' },
     { k: 'jog', x: 158, y: 300, r: 96, n: `JOG wheel (CDJ ${no})`, fn: 'jog', d: 'Jog = velké kolo, chová se jako gramofonová deska. Uprostřed má displej s obalem písničky.\nShora (položíš ruku): „chytíš desku“ – můžeš scratchovat nebo písničku posunout.\nZa bok: písničku na chvilku zrychlíš/zpomalíš, tak doladíš, aby bubny obou písniček šly přesně spolu.\nNa webu: táhni myší za vnější okraj kola = postrčení, za vnitřek = scratch (ve VINYL).' },
