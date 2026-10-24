@@ -15,6 +15,7 @@ import { site } from '../site';
  */
 const video = {
   id: 'arVjha7JfDw',
+  mixcloud: 'https://www.mixcloud.com/Thompson111/maci-goat/',
   size: { w: 1920, h: 2160 },
   angles: [
     { label: 'Kamera', y: 1101, h: 1055 },
@@ -107,6 +108,11 @@ const video = {
         )
       }
     </div>
+    <p class="links wide">
+      <span>Celý set:</span>
+      <a href={`https://youtu.be/${video.id}`} target="_blank" rel="noopener">YouTube ↗</a>
+      <a href={video.mixcloud} target="_blank" rel="noopener">Mixcloud ↗</a>
+    </p>
   </main>
 
   <div class="tip" hidden><b></b><span></span></div>
@@ -338,6 +344,7 @@ const video = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let yt: any;
     let seeking = false;
+    let last = { to: 0, at: 0 }; // last arrow-key seek (see below)
     let angle = 0;
     let started = false;
     // YouTube refuses embeds on some origins (a LAN IP, blocked networks) —
@@ -402,7 +409,7 @@ const video = {
     document.head.append(api);
 
     setInterval(() => {
-      if (!yt?.getCurrentTime || seeking) return;
+      if (!yt?.getCurrentTime || seeking || performance.now() - last.at < 1200) return;
       seek.value = String(yt.getCurrentTime());
       show(+seek.value);
     }, 250);
@@ -430,6 +437,23 @@ const video = {
     // iPhone Safari can only fullscreen a <video>, not our cropped frame.
     fs.hidden = !document.fullscreenEnabled;
     fs.addEventListener('click', () => (document.fullscreenElement ? document.exitFullscreen() : player.requestFullscreen()));
+
+    // ← / → skip 5 s, like on YouTube — once the video has been started, and
+    // not while a pult control (whose arrows turn knobs) or a text field has focus.
+    // Quick repeated presses add up: YouTube reports the new time only after
+    // the seek lands, so build on our own last target meanwhile.
+    document.addEventListener('keydown', (e) => {
+      if (!started || e.defaultPrevented || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+      const t = e.target as Element;
+      if (t.closest('.stage') || (t instanceof HTMLInputElement && t !== seek) || t instanceof HTMLTextAreaElement) return;
+      e.preventDefault();
+      const base = performance.now() - last.at < 1000 ? last.to : yt.getCurrentTime();
+      const to = clamp(base + (e.key === 'ArrowRight' ? 5 : -5), 0, yt.getDuration());
+      last = { to, at: performance.now() };
+      yt.seekTo(to, true);
+      seek.value = String(to);
+      show(to);
+    });
   }
 </script>
 
@@ -715,6 +739,42 @@ const video = {
 
   .player:not([data-started]) .catch {
     pointer-events: none;
+  }
+
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    margin: 1.25rem 0 0;
+  }
+
+  .links span {
+    font-size: var(--text-micro);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-4);
+  }
+
+  .links a {
+    padding: 0.6rem 1rem;
+    font-size: var(--text-micro);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--ink-2);
+    border: 1px solid var(--hairline);
+    transition:
+      color 0.15s,
+      border-color 0.15s;
+  }
+
+  .links a:hover,
+  .links a:focus-visible {
+    color: var(--ink-1);
+    border-color: var(--accent-cyan);
   }
 
   .fallback {
