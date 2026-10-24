@@ -1,0 +1,417 @@
+---
+/**
+ * One rig from `lib/gear.ts` as a 3D-ish box per unit: the SVG is the top
+ * face lifted by the unit's real height, four divs are the sides. All the
+ * behaviour (rotate, press, turn, slide) lives in `pages/macicek.astro`.
+ */
+import type { Item, Rig } from '../lib/gear';
+
+interface Props {
+  rig: Rig;
+  hidden?: boolean;
+}
+const { rig, hidden } = Astro.props;
+
+const ticks = Array.from({ length: 36 }, (_, i) => (i * Math.PI) / 18);
+const attrs = (it: Item) => ({
+  class: `ctl ${it.k}${it.on ? ' on' : ''}`,
+  tabindex: 0,
+  role: it.k === 'knob' || it.k === 'fader' ? ('slider' as const) : ('button' as const),
+  'aria-label': it.n,
+  'data-n': it.n,
+  'data-d': it.d,
+  'data-k': it.k,
+  'data-v': it.k === 'fader' ? it.v : it.k === 'knob' ? 0 : undefined,
+  'data-len': it.len,
+  'data-dir': it.dir,
+  'data-grp': it.grp,
+  'data-toggle': it.toggle ? '' : undefined,
+  'data-fn': it.fn,
+  'data-ch': it.ch,
+  'data-arg': it.arg,
+  'data-endless': it.endless ? '' : undefined,
+  style: it.c ? `--led:${it.c}` : undefined,
+});
+---
+
+<div class="rig" id={rig.id} hidden={hidden} style={`--rw:${rig.w};--rh:${rig.h}`}>
+  {
+    rig.units.map((u) => (
+      <div class="unit" style={`--x:${u.x};--y:${u.y};--w:${u.w};--h:${u.h};--z:${u.z}`}>
+        <i class="s f" />
+        <i class="s b" />
+        <i class="s l" />
+        <i class="s r" />
+        <svg class="top" viewBox={`0 0 ${u.w} ${u.h}`} aria-label={u.name}>
+          <rect class="plate" width={u.w} height={u.h} rx="5" />
+          <text class="model" x={u.w - 10} y={u.h - 9}>{u.name}</text>
+          {u.parts.map((p) => (
+            <g data-deck={p.deck}>
+              {p.items.map((it) => {
+                const { x, y, w = 0, h = 0, r = 0, len = 0, v = 0 } = it;
+                if (it.k === 'btn' || it.k === 'pad')
+                  return (
+                    <g {...attrs(it)}>
+                      <rect class="cap" x={x} y={y} width={w} height={h} rx={it.k === 'pad' ? 2 : 1.4} />
+                      {it.t && <text class="in" x={x + w / 2} y={y + h / 2 + 1.4}>{it.t}</text>}
+                    </g>
+                  );
+                if (it.k === 'rbtn')
+                  return (
+                    <g {...attrs(it)}>
+                      <circle class="ring" cx={x} cy={y} r={r + 1.6} />
+                      <circle class="cap" cx={x} cy={y} r={r} />
+                      <text class="in" x={x} y={y + 1.6}>{it.t}</text>
+                    </g>
+                  );
+                if (it.k === 'knob')
+                  return (
+                    <g {...attrs(it)}>
+                      <circle class="skirt" cx={x} cy={y} r={r + 1.5} />
+                      <g class="rot">
+                        <circle class="cap" cx={x} cy={y} r={r} />
+                        <line class="ind" x1={x} y1={y - r + 1} x2={x} y2={y - r * 0.35} />
+                      </g>
+                      <text class="lbl" x={x} y={y + r + 5.5}>{it.t}</text>
+                    </g>
+                  );
+                if (it.k === 'fader') {
+                  const hz = it.dir === 'h';
+                  return (
+                    <g {...attrs(it)}>
+                      <rect class="hit" x={hz ? x - 6 : x - 7} y={hz ? y - 7 : y - 4} width={hz ? len + 12 : 14} height={hz ? 14 : len + 8} />
+                      <rect class="slot" x={hz ? x : x - 1} y={hz ? y - 1 : y} width={hz ? len : 2} height={hz ? 2 : len} rx="1" />
+                      <g class="fcap" style={hz ? `translate:${v * len}px 0` : `translate:0 ${v * len}px`}>
+                        <rect x={hz ? x - 3.5 : x - 6} y={hz ? y - 6 : y - 3.5} width={hz ? 7 : 12} height={hz ? 12 : 7} rx="1" />
+                        <line x1={hz ? x : x - 6} y1={hz ? y - 6 : y} x2={hz ? x : x + 6} y2={hz ? y + 6 : y} />
+                      </g>
+                      <text class="lbl" x={hz ? x + len / 2 : x} y={hz ? y + 13 : y + len + 9}>{it.t}</text>
+                    </g>
+                  );
+                }
+                if (it.k === 'jog')
+                  return (
+                    <g {...attrs(it)}>
+                      <circle class="jring" cx={x} cy={y} r={r} />
+                      <g class="rot">
+                        <g class="spin">
+                          <circle class="platter" cx={x} cy={y} r={r * 0.88} />
+                          {ticks.map((a) => (
+                            <line class="tick" x1={x + Math.cos(a) * r * 0.92} y1={y + Math.sin(a) * r * 0.92} x2={x + Math.cos(a) * r * 0.98} y2={y + Math.sin(a) * r * 0.98} />
+                          ))}
+                          <line class="mark" x1={x} y1={y - r * 0.86} x2={x} y2={y - r * 0.5} />
+                        </g>
+                      </g>
+                      <circle class="hub" cx={x} cy={y} r={r * 0.3} />
+                    </g>
+                  );
+                if (it.k === 'meter') {
+                  const n = Math.floor(h / 6);
+                  return (
+                    <g {...attrs(it)}>
+                      <rect class="hit" x={x - 1} y={y - 1} width="5.5" height={n * 6 + 1} />
+                      {Array.from({ length: n }, (_, i) => (
+                        <rect class={`led ${i === 0 ? 'red' : i < 3 ? 'amb' : ''}`} x={x} y={y + i * 6} width="3.5" height="4" rx=".6" style={`--i:${n - i}`} />
+                      ))}
+                    </g>
+                  );
+                }
+                // screen
+                return (
+                  <g {...attrs(it)}>
+                    <rect class="glass" x={x} y={y} width={w} height={h} rx="1.5" />
+                    {/* filled live by scripts/dj.ts */}
+                    {it.wave && <g class="wv" data-box={`${x + 4} ${y + 4} ${w - 8} ${h - 8}`} />}
+                    {it.t && <text class="scr" x={x + w / 2} y={y + h / 2 + 1.6}>{it.t}</text>}
+                  </g>
+                );
+              })}
+            </g>
+          ))}
+        </svg>
+      </div>
+    ))
+  }
+</div>
+
+<style>
+  .rig {
+    --mm: calc(100cqw / var(--rw));
+    position: relative;
+    width: calc(var(--rw) * var(--mm));
+    height: calc(var(--rh) * var(--mm));
+    transform-style: preserve-3d;
+    transform: rotateX(var(--tilt)) rotateZ(var(--spin));
+  }
+
+  .rig[hidden] {
+    display: none;
+  }
+
+  .unit {
+    position: absolute;
+    left: calc(var(--x) * var(--mm));
+    top: calc(var(--y) * var(--mm));
+    width: calc(var(--w) * var(--mm));
+    height: calc(var(--h) * var(--mm));
+    transform-style: preserve-3d;
+    background: #050506;
+    border-radius: calc(5 * var(--mm));
+  }
+
+  .top {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    transform: translateZ(calc(var(--z) * var(--mm)));
+  }
+
+  .s {
+    position: absolute;
+    --d: calc(var(--z) * var(--mm));
+  }
+
+  .f {
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: var(--d);
+    transform-origin: bottom;
+    transform: rotateX(-90deg);
+    background: linear-gradient(#232327, #111113);
+  }
+
+  .b {
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: var(--d);
+    transform-origin: top;
+    transform: rotateX(90deg);
+    background: #141416;
+  }
+
+  .l {
+    left: 0;
+    top: 0;
+    width: var(--d);
+    height: 100%;
+    transform-origin: left;
+    transform: rotateY(-90deg);
+    background: #19191c;
+  }
+
+  .r {
+    right: 0;
+    top: 0;
+    width: var(--d);
+    height: 100%;
+    transform-origin: right;
+    transform: rotateY(90deg);
+    background: #19191c;
+  }
+
+  .plate {
+    fill: #18181b;
+    stroke: #303035;
+    stroke-width: 1;
+  }
+
+  .model {
+    fill: #6a6a72;
+    font: 700 8px var(--font-display);
+    text-anchor: end;
+    pointer-events: none;
+  }
+
+  text {
+    pointer-events: none;
+    text-anchor: middle;
+    user-select: none;
+  }
+
+  .lbl,
+  .in {
+    font: 600 4.2px var(--font-body);
+    letter-spacing: 0.02em;
+    fill: #a3a3ab;
+  }
+
+  .in {
+    font-size: 3.6px;
+    fill: #c9c9cf;
+  }
+
+  .ctl {
+    cursor: pointer;
+    outline: none;
+  }
+
+  .ctl .cap,
+  .ctl .jring,
+  .ctl .glass,
+  .ctl .hit {
+    transition:
+      fill 0.08s,
+      stroke 0.15s;
+  }
+
+  .ctl:hover :is(.cap, .jring, .glass, .slot),
+  .ctl:focus-visible :is(.cap, .jring, .glass, .slot) {
+    stroke: var(--accent-cyan);
+    stroke-width: 0.8;
+  }
+
+  .hit {
+    fill: transparent;
+    stroke: none;
+  }
+
+  /* buttons + pads */
+  .btn .cap,
+  .rbtn .cap {
+    fill: #2a2a2f;
+    stroke: #43434a;
+    stroke-width: 0.5;
+  }
+
+  .rbtn .ring {
+    fill: none;
+    stroke: color-mix(in srgb, var(--led) 35%, #333);
+    stroke-width: 1.2;
+  }
+
+  .pad .cap {
+    fill: color-mix(in srgb, var(--led) 14%, #202024);
+    stroke: color-mix(in srgb, var(--led) 45%, #333);
+    stroke-width: 0.6;
+  }
+
+  .ctl.on .cap,
+  .ctl.down .cap {
+    fill: var(--led, #e8e8ee);
+    filter: drop-shadow(0 0 2px var(--led, #fff));
+  }
+
+  .rbtn.on .ring {
+    stroke: var(--led);
+  }
+
+  .ctl.on .in,
+  .ctl.down .in {
+    fill: #111;
+  }
+
+  /* knobs */
+  .skirt {
+    fill: #0e0e10;
+    stroke: #3a3a40;
+    stroke-width: 0.5;
+  }
+
+  .knob .cap {
+    fill: #2d2d33;
+    stroke: #4a4a52;
+    stroke-width: 0.5;
+  }
+
+  .ind {
+    stroke: #f2f2f2;
+    stroke-width: 1.1;
+    stroke-linecap: round;
+  }
+
+  .rot,
+  .spin {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  /* faders */
+  .slot {
+    fill: #050506;
+    stroke: #2a2a30;
+    stroke-width: 0.4;
+  }
+
+  .fcap rect {
+    fill: #3a3a42;
+    stroke: #5a5a64;
+    stroke-width: 0.5;
+  }
+
+  .fcap line {
+    stroke: #f2f2f2;
+    stroke-width: 0.8;
+  }
+
+  /* jog */
+  .jring {
+    fill: #9a9aa2;
+    stroke: #55555c;
+    stroke-width: 0.8;
+  }
+
+  .platter {
+    fill: #222227;
+  }
+
+  .tick {
+    stroke: #4a4a52;
+    stroke-width: 0.8;
+  }
+
+  .mark {
+    stroke: var(--accent-cyan);
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+
+  .hub {
+    fill: #0c0c0e;
+    stroke: #3a3a40;
+    stroke-width: 0.6;
+  }
+
+  [data-playing] .spin {
+    animation: spin 1.8s linear infinite;
+  }
+
+  [data-reverse] .spin {
+    animation-direction: reverse;
+  }
+
+  @keyframes spin {
+    to {
+      rotate: 360deg;
+    }
+  }
+
+  /* screens */
+  .glass {
+    fill: #07080b;
+    stroke: #2c2c33;
+    stroke-width: 0.6;
+  }
+
+  .scr {
+    font: 600 4.4px var(--font-body);
+    fill: var(--accent-cyan);
+  }
+
+  /* meters — lit by scripts/dj.ts from the real signal */
+  .led {
+    fill: #3ee07a;
+    opacity: 0.18;
+  }
+
+  .led.amb {
+    fill: #ff9a2e;
+  }
+
+  .led.red {
+    fill: #ff4d4d;
+  }
+</style>
