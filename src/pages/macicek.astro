@@ -1,0 +1,820 @@
+---
+import Base from '../layouts/Base.astro';
+import Logo from '../components/Logo.astro';
+import Gear from '../components/Gear.astro';
+import { rigs } from '../lib/gear';
+import { site } from '../site';
+
+/**
+ * One YouTube video with both angles stacked in one frame and the mix as its
+ * only audio — the page crops to one angle's region, so they can never drift
+ * apart. Regions are in the uploaded frame's pixels, from the Premiere
+ * sequence (checked against the YouTube thumbnail): the screen recording sits
+ * on top at y 16–1101 and covers the camera's top edge, so the camera shows
+ * from y 1101 to 2156. Each region is scaled to fill the 16:9 window.
+ */
+const video = {
+  id: 'arVjha7JfDw',
+  size: { w: 1920, h: 2160 },
+  angles: [
+    { label: 'Kamera', y: 1101, h: 1055 },
+    { label: 'Notebook (rekordbox)', y: 16, h: 1085 },
+  ],
+};
+---
+
+<Base title={`${site.name} | DJ pult`} description="Interaktivní DJ pult – najeď myší na cokoliv a zjistíš, co to dělá." noindex>
+  <header class="top">
+    <a class="mark" href="/cs/" aria-label="Domů">
+      <Logo size="1.75rem" />
+    </a>
+  </header>
+
+  <main class="block">
+    <p class="label">DJ pult</p>
+    <h1>Co je co na pultu</h1>
+    <p class="lede">
+      Najeď myší (nebo ťukni) na cokoliv a uvidíš, co to je a co to dělá. Tlačítka se dají mačkat, knoby točit
+      tažením nahoru/dolů, fadery posouvat. Tažením mimo ovladače otočíš celý pult.
+    </p>
+    <p class="lede">
+      A hlavně: <b>pulty opravdu hrají</b> 🔊 V knihovně jsou čtyři drum &amp; bass písničky a skoro každé tlačítko dělá to, co
+      na skutečném pultu. Zkus si první přechod:
+    </p>
+    <ol class="howto">
+      <li>Zmáčkni <b>PLAY</b> na levém decku.</li>
+      <li>
+        Přepni poslech na <b>🎧 Sluchátka</b>, na pravém kanálu zmáčkni <b>CUE</b>, na pravém decku <b>SYNC</b> a <b>PLAY</b>.
+        Teď slyšíš, co DJ ve sluchátkách – další písničku, kterou lidi ještě neslyší.
+      </li>
+      <li>Přepni zpátky na <b>🔊 Repro</b>. Pravý fader pomalu vytáhni nahoru a u jedné z písniček stáhni basy (<b>LOW</b>).</li>
+      <li>Levý fader stáhni dolů. A máš první přechod 🎉</li>
+      <li>Bonus: zapni Beat FX <b>ON</b> (reverb) a stáhni fader – písnička se rozplyne.</li>
+    </ol>
+
+    <div class="switch wide" role="group" aria-label="Setup">
+      {rigs.map((r, i) => <button type="button" data-rig={r.id} aria-pressed={i === 0 ? 'true' : 'false'}>{r.label}</button>)}
+      <button type="button" class="reset">Reset pohledu</button>
+    </div>
+    <div class="switch listen wide" role="group" aria-label="Co slyšíš">
+      <span>Poslech:</span>
+      <button type="button" data-listen="master" aria-pressed="true">🔊 Repro (co slyší lidi)</button>
+      <button type="button" data-listen="A" aria-pressed="false">🎧 Sluchátka</button>
+      <button type="button" data-listen="B" data-for="cdj" aria-pressed="false" hidden>🎧 Sluchátka B</button>
+    </div>
+
+    <!-- The FLX4 has no screen of its own — the waveforms live in rekordbox on the laptop. -->
+    <div class="laptop wide" data-for="flx4">
+      <p class="laptop-label">rekordbox na notebooku</p>
+      <svg viewBox="0 0 800 238" role="img" aria-label="Waveformy obou decků">
+        <g class="wv" data-deck="0" data-box="4 4 792 110"></g>
+        <g class="wv" data-deck="1" data-box="4 124 792 110"></g>
+      </svg>
+      <p class="fxline"></p>
+      <p class="laptop-label">Knihovna – vyber písničku (klikem nebo knobem BROWSE) a dej LOAD</p>
+      <ol class="lib"></ol>
+    </div>
+
+    <div class="stage wide">
+      {rigs.map((r, i) => <Gear rig={r} hidden={i > 0} />)}
+    </div>
+
+    <h2>Jak to vypadá naživo</h2>
+    <div class="player wide" data-id={video.id} data-video={JSON.stringify(video)}>
+      <div class="frame">
+        {video.id ? <div id="yt"></div> : <p class="soon">Video brzy.</p>}
+        <div class="catch"></div>
+        {
+          video.id && (
+            <a class="fallback" href={`https://youtu.be/${video.id}`} target="_blank" rel="noopener">
+              YouTube tady video nechce pustit (třeba když je stránka otevřená přes IP adresu v síti).
+              <b>Otevřít na YouTube ↗</b>
+            </a>
+          )
+        }
+      </div>
+      {
+        video.id && (
+          <div class="bar">
+            <button type="button" class="pp" aria-label="Přehrát">▶</button>
+            <input class="seek" type="range" min="0" max="0" step="1" value="0" aria-label="Posun ve videu" />
+            <span class="time">0:00</span>
+            <div class="angles" role="group" aria-label="Kamera">
+              {video.angles.map((a, i) => <button type="button" data-angle={i} aria-pressed={i === 0 ? 'true' : 'false'}>{a.label}</button>)}
+            </div>
+            <button type="button" class="fs" aria-label="Celá obrazovka">⛶</button>
+          </div>
+        )
+      }
+    </div>
+  </main>
+
+  <div class="tip" hidden><b></b><span></span></div>
+</Base>
+
+<script>
+  import * as dj from '../scripts/dj/index';
+
+  const stage = document.querySelector<HTMLElement>('.stage')!;
+  void dj.init(document.querySelector<HTMLElement>('.rig:not([hidden])')!);
+  const tip = document.querySelector<HTMLElement>('.tip')!;
+  const DEG = Math.PI / 180;
+  const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
+
+  let tilt = 38;
+  let spin = 0;
+  const view = () => {
+    stage.style.setProperty('--tilt', `${tilt}deg`);
+    stage.style.setProperty('--spin', `${spin}deg`);
+  };
+  view();
+
+  /* --- switcher --- */
+  document.querySelector('.switch')!.addEventListener('click', (e) => {
+    const b = (e.target as Element).closest('button');
+    if (!b) return;
+    if (b.classList.contains('reset')) {
+      [tilt, spin] = [38, 0];
+      return view();
+    }
+    document.querySelectorAll<HTMLButtonElement>('[data-rig]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    document.querySelectorAll<HTMLElement>('.rig').forEach((r) => (r.hidden = r.id !== b.dataset.rig));
+    document.querySelectorAll<HTMLElement>('[data-for]').forEach((x) => (x.hidden = x.dataset.for !== b.dataset.rig));
+    dj.show(document.getElementById(b.dataset.rig!)!);
+  });
+
+  /* --- what you hear: the speakers, or the DJ's headphones --- */
+  document.querySelector('.listen')!.addEventListener('click', (e) => {
+    const b = (e.target as Element).closest<HTMLButtonElement>('[data-listen]');
+    if (!b) return;
+    void dj.unlock();
+    document.querySelectorAll('[data-listen]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    dj.listen(b.dataset.listen as 'master');
+  });
+
+  /* --- tooltip --- */
+  const place = (x: number, y: number) => {
+    tip.style.left = `${clamp(x + 16, 8, innerWidth - tip.offsetWidth - 8)}px`;
+    tip.style.top = `${y + 18 + tip.offsetHeight > innerHeight ? y - tip.offsetHeight - 12 : y + 18}px`;
+  };
+  const show = (el: SVGElement, x: number, y: number) => {
+    tip.querySelector('b')!.textContent = el.dataset.n!;
+    tip.querySelector('span')!.textContent = el.dataset.d!;
+    tip.hidden = false;
+    place(x, y);
+  };
+  const ctlOf = (t: EventTarget | null) => (t instanceof Element ? t.closest<SVGGElement>('.ctl') : null);
+
+  stage.addEventListener('pointerover', (e) => {
+    const el = ctlOf(e.target);
+    if (el) show(el, e.clientX, e.clientY);
+  });
+  stage.addEventListener('pointermove', (e) => {
+    if (!tip.hidden && e.pointerType === 'mouse') place(e.clientX, e.clientY);
+  });
+  stage.addEventListener('pointerout', (e) => {
+    // Touch keeps the tip up until the next tap — there's no hover to end it.
+    if (e.pointerType === 'mouse' && ctlOf(e.target) !== ctlOf(e.relatedTarget)) tip.hidden = true;
+  });
+  stage.addEventListener('focusin', (e) => {
+    const el = ctlOf(e.target);
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    show(el, r.right, r.bottom);
+  });
+  stage.addEventListener('focusout', () => (tip.hidden = true));
+
+  /* --- controls --- */
+  const rotOf = (el: Element) => el.querySelector<SVGGElement>('.rot')!;
+  const setKnob = (el: SVGGElement, v: number) => {
+    // Rotary encoders (BROWSE, ROTARY) turn forever; everything else stops at ±150°.
+    el.dataset.v = String('endless' in el.dataset ? v : dj.adjust(el, clamp(v, -1, 1)));
+    rotOf(el).style.rotate = `${+el.dataset.v * 150}deg`;
+    dj.control(el);
+  };
+  const setFader = (el: SVGGElement, v: number) => {
+    v = clamp(v, 0, 1);
+    el.dataset.v = String(v);
+    const d = v * +el.dataset.len!;
+    el.querySelector<SVGGElement>('.fcap')!.style.translate = el.dataset.dir === 'h' ? `${d}px 0` : `0 ${d}px`;
+    dj.control(el);
+  };
+
+  // Lights come from the engine (dj.ui); the page only adds the press flash.
+  const press = (el: SVGGElement, frac = 0) => {
+    el.classList.add('down');
+    setTimeout(() => el.classList.remove('down'), 160);
+    const { grp } = el.dataset;
+    if (grp) {
+      const was = el.classList.contains('on');
+      el.parentElement!.querySelectorAll(`[data-grp="${grp}"]`).forEach((x) => x.classList.remove('on'));
+      el.classList.toggle('on', !was);
+    }
+    if ('toggle' in el.dataset) el.classList.toggle('on');
+    dj.press(el, frac);
+  };
+
+  // Pointer-capture drag on the stage itself, so a fast flick off the control keeps going.
+  const drag = (e: PointerEvent, move: (dx: number, dy: number, ev: PointerEvent) => void, end?: () => void) => {
+    const [x0, y0] = [e.clientX, e.clientY];
+    stage.setPointerCapture(e.pointerId);
+    const mv = (ev: PointerEvent) => move(ev.clientX - x0, ev.clientY - y0, ev);
+    stage.addEventListener('pointermove', mv);
+    stage.addEventListener(
+      'lostpointercapture',
+      () => {
+        stage.removeEventListener('pointermove', mv);
+        end?.();
+      },
+      { once: true },
+    );
+  };
+  const fracOf = (el: Element, x: number) => {
+    const r = el.getBoundingClientRect();
+    return (x - r.left) / r.width;
+  };
+
+  stage.addEventListener('pointerdown', (e) => {
+    const el = ctlOf(e.target);
+    if (!el) {
+      if (e.pointerType !== 'mouse') tip.hidden = true;
+      const [t0, s0] = [tilt, spin];
+      return drag(e, (dx, dy) => {
+        tilt = clamp(t0 - dy * 0.3, 0, 85);
+        spin = s0 + dx * 0.3;
+        view();
+      });
+    }
+    e.preventDefault();
+    void dj.unlock();
+    if (e.pointerType !== 'mouse') show(el, e.clientX, e.clientY);
+    const k = el.dataset.k;
+    const v0 = +(el.dataset.v ?? 0);
+
+    if (k === 'knob') {
+      let moved = false;
+      return drag(
+        e,
+        (_, dy) => {
+          moved ||= Math.abs(dy) > 3;
+          if (moved) setKnob(el, v0 - dy / 120);
+        },
+        () => moved || dj.click(el), // a click on a rotary encoder = its push
+      );
+    }
+
+    if (k === 'fader') {
+      // Project the drag onto the slot's on-screen direction under the current tilt/spin.
+      const [ux, uy] = el.dataset.dir === 'h' ? [1, 0] : [0, 1];
+      const sx = ux * Math.cos(spin * DEG) - uy * Math.sin(spin * DEG);
+      const sy = (ux * Math.sin(spin * DEG) + uy * Math.cos(spin * DEG)) * Math.cos(tilt * DEG);
+      const rig = el.closest<HTMLElement>('.rig')!;
+      const pxPerMm = rig.offsetWidth / +getComputedStyle(rig).getPropertyValue('--rw');
+      const k2 = Math.max(sx * sx + sy * sy, 0.05) * pxPerMm * +el.dataset.len!;
+      return drag(e, (dx, dy) => setFader(el, v0 + (dx * sx + dy * sy) / k2));
+    }
+
+    if (k === 'jog') {
+      const r = el.getBoundingClientRect();
+      const [cx, cy] = [r.left + r.width / 2, r.top + r.height / 2];
+      // Grabbing near the rim is the side ring (nudge); further in is the platter (scratch).
+      const inner = Math.hypot((e.clientX - cx) / (r.width / 2), (e.clientY - cy) / (r.height / 2)) < 0.8;
+      dj.jogStart(el, inner);
+      let last = Math.atan2(e.clientY - cy, e.clientX - cx);
+      let t = performance.now();
+      return drag(
+        e,
+        (_, __, ev) => {
+          const a = Math.atan2(ev.clientY - cy, ev.clientX - cx);
+          const step = ((((a - last) / DEG + 540) % 360) - 180) || 0;
+          const dt = (ev.timeStamp - t) / 1000;
+          [last, t] = [a, ev.timeStamp];
+          el.dataset.v = String(+(el.dataset.v ?? 0) + step);
+          rotOf(el).style.rotate = `${el.dataset.v}deg`;
+          dj.jog(el, step, dt);
+        },
+        () => dj.jogEnd(el),
+      );
+    }
+
+    if (k === 'meter' || (k === 'screen' && !el.dataset.fn)) return;
+    press(el, fracOf(el, e.clientX));
+    // Hold-type controls (CUE, hot cues, pad FX, X-PAD, SEARCH) act until release.
+    drag(
+      e,
+      (_, __, ev) => dj.slide(el, fracOf(el, ev.clientX)),
+      () => dj.release(el),
+    );
+  });
+
+  stage.addEventListener('keydown', (e) => {
+    const el = ctlOf(e.target);
+    if (!el) return;
+    void dj.unlock();
+    const k = el.dataset.k;
+    const step = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[e.key];
+    if (step && k === 'knob') setKnob(el, +el.dataset.v! + step * 0.1);
+    else if (step && k === 'fader') setFader(el, +el.dataset.v! - step * 0.05);
+    else if ((e.key === 'Enter' || e.key === ' ') && !e.repeat && (k === 'btn' || k === 'rbtn' || k === 'pad')) press(el);
+    else return;
+    e.preventDefault();
+  });
+  stage.addEventListener('keyup', (e) => {
+    const el = ctlOf(e.target);
+    if (el && (e.key === 'Enter' || e.key === ' ')) dj.release(el);
+  });
+
+  /* --- video: one stacked YouTube video, cropped to the chosen angle --- */
+  const player = document.querySelector<HTMLElement>('.player');
+  if (player?.dataset.id) {
+    const pp = player.querySelector<HTMLButtonElement>('.pp')!;
+    const seek = player.querySelector<HTMLInputElement>('.seek')!;
+    const time = player.querySelector<HTMLElement>('.time')!;
+    const fmt = (s: number) => {
+      s = Math.floor(s);
+      const [h, m, x] = [Math.floor(s / 3600), Math.floor(s / 60) % 60, s % 60];
+      return `${h ? `${h}:${String(m).padStart(2, '0')}` : m}:${String(x).padStart(2, '0')}`;
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let yt: any;
+    let seeking = false;
+    let angle = 0;
+    let started = false;
+    // YouTube refuses embeds on some origins (a LAN IP, blocked networks) —
+    // show a way out instead of a ▶ that silently does nothing.
+    const fail = () => (player.dataset.failed = '');
+    const noReply = setTimeout(fail, 12000);
+
+    // Size and offset the (whole-frame) iframe so one region fills the 16:9
+    // window — in units of the window's width, applied as cqw in CSS.
+    const cfg: { size: { w: number; h: number }; angles: { y: number; h: number }[] } = JSON.parse(player.dataset.video!);
+    const frame = player.querySelector<HTMLElement>('.frame')!;
+    const place = () => {
+      const { w, h: H } = cfg.size;
+      // Before the first play: whole frame, centred, so YouTube's own play
+      // button (iframe centre) is what you tap — mobile browsers only start a
+      // video from a tap inside the iframe, not from our button.
+      const r = started ? cfg.angles[angle] : { y: 0, h: H };
+      const k = started ? Math.max(1 / w, 0.5625 / r.h) : 1 / w;
+      const top = started ? -r.y * k + (0.5625 - r.h * k) / 2 : (0.5625 - H * k) / 2;
+      frame.style.setProperty('--iw', String(w * k));
+      frame.style.setProperty('--ih', String(H * k));
+      frame.style.setProperty('--il', String((1 - w * k) / 2));
+      frame.style.setProperty('--it', String(top));
+    };
+    place();
+    const show = (t: number) => (time.textContent = `${fmt(t)} / ${fmt(+seek.max)}`);
+    const toggle = () => (yt?.getPlayerState() === 1 ? yt.pauseVideo() : yt?.playVideo());
+
+    Object.assign(window, {
+      onYouTubeIframeAPIReady() {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        yt = new (window as any).YT.Player('yt', {
+          host: 'https://www.youtube-nocookie.com',
+          videoId: player.dataset.id,
+          playerVars: { controls: 0, playsinline: 1, rel: 0, disablekb: 1, fs: 0, iv_load_policy: 3 },
+          events: {
+            onReady: () => {
+              seek.max = String(Math.floor(yt.getDuration()));
+              show(0);
+              // A refused embed still fires onReady, just with no duration.
+              if (!yt.getDuration()) setTimeout(() => yt.getDuration() || fail(), 3000);
+              else clearTimeout(noReply);
+            },
+            onError: fail,
+            onStateChange: (e: { data: number }) => {
+              const playing = e.data === 1;
+              if (playing && !started) {
+                started = true;
+                player.dataset.started = '';
+                place();
+              }
+              pp.textContent = playing ? '❚❚' : '▶';
+              pp.ariaLabel = playing ? 'Pauza' : 'Přehrát';
+            },
+          },
+        });
+      },
+    });
+    const api = document.createElement('script');
+    api.src = 'https://www.youtube.com/iframe_api';
+    api.onerror = fail;
+    document.head.append(api);
+
+    setInterval(() => {
+      if (!yt?.getCurrentTime || seeking) return;
+      seek.value = String(yt.getCurrentTime());
+      show(+seek.value);
+    }, 250);
+
+    pp.addEventListener('click', toggle);
+    player.querySelector('.catch')!.addEventListener('click', toggle);
+    seek.addEventListener('input', () => {
+      seeking = true;
+      show(+seek.value);
+    });
+    seek.addEventListener('change', () => {
+      yt?.seekTo(+seek.value, true);
+      seeking = false;
+    });
+
+    player.querySelector('.angles')!.addEventListener('click', (e) => {
+      const b = (e.target as Element).closest<HTMLButtonElement>('[data-angle]');
+      if (!b) return;
+      angle = +b.dataset.angle!;
+      place();
+      player.querySelectorAll('[data-angle]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    });
+
+    const fs = player.querySelector<HTMLButtonElement>('.fs')!;
+    // iPhone Safari can only fullscreen a <video>, not our cropped frame.
+    fs.hidden = !document.fullscreenEnabled;
+    fs.addEventListener('click', () => (document.fullscreenElement ? document.exitFullscreen() : player.requestFullscreen()));
+  }
+</script>
+
+<style>
+  .top {
+    padding: 1rem var(--gutter);
+  }
+
+  .mark {
+    display: inline-block;
+    line-height: 0;
+    opacity: 0.85;
+  }
+
+  main {
+    padding-block: clamp(2rem, 6vh, 4rem);
+    overflow-x: clip;
+  }
+
+  h1 {
+    margin: 0 0 1rem;
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 1rem + 4vw, 3.25rem);
+    line-height: 1.05;
+    text-transform: uppercase;
+    color: var(--ink-1);
+  }
+
+  .lede {
+    margin: 0 0 2rem;
+    color: var(--ink-3);
+  }
+
+  .howto {
+    margin: 0 0 2rem;
+    padding-left: 1.25rem;
+    color: var(--ink-3);
+  }
+
+  .howto li + li {
+    margin-top: 0.35rem;
+  }
+
+  .howto b,
+  .lede b {
+    color: var(--ink-1);
+  }
+
+  .laptop {
+    margin-bottom: 0.5rem;
+    padding: 0.6rem 0.75rem 0.4rem;
+    background: #0b0c10;
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+  }
+
+  .laptop svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .laptop-label,
+  .fxline {
+    margin: 0 0 0.4rem;
+    font-size: var(--text-micro);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-4);
+  }
+
+  .fxline {
+    margin: 0.4rem 0 0.75rem;
+  }
+
+  .lib {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--text-meta);
+  }
+
+  .lib :global(li) {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.3rem 0.5rem;
+    color: #d6d9e0;
+    cursor: pointer;
+  }
+
+  .lib :global(li.sel) {
+    background: #1d4fa8;
+  }
+
+  .lib :global(span) {
+    color: #8b93a6;
+    white-space: nowrap;
+  }
+
+  .lib :global(b) {
+    margin-left: 0.5rem;
+    color: var(--accent-cyan);
+  }
+
+  .listen {
+    align-items: center;
+  }
+
+  .listen span {
+    font-size: var(--text-micro);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-4);
+  }
+
+  .listen [hidden] {
+    display: none;
+  }
+
+  /* Waveform screens — drawn by scripts/dj.ts into the laptop panel above
+     and into the CDJ screens inside Gear.astro, hence :global. */
+  :global(.wv-bg) {
+    fill: #05060a;
+  }
+
+  :global(.wv-wave) {
+    fill: #3d8bff;
+  }
+
+  :global(.wv-ov) {
+    fill: #5a6a8a;
+  }
+
+  :global(.wv-grid) {
+    stroke: rgb(255 255 255 / 0.18);
+    stroke-width: 0.4;
+  }
+
+  :global(.wv-bar) {
+    stroke: rgb(255 255 255 / 0.55);
+    stroke-width: 0.6;
+  }
+
+  :global(.wv-loop) {
+    fill: rgb(255 154 46 / 0.12);
+  }
+
+  :global(.wv-loop.on) {
+    fill: rgb(255 154 46 / 0.35);
+  }
+
+  :global(.wv-head),
+  :global(.wv-ovhead) {
+    stroke: #ff4d4d;
+    stroke-width: 1;
+  }
+
+  :global(.wv-t) {
+    font-family: var(--font-body);
+    font-weight: 600;
+    fill: #d6d9e0;
+    text-anchor: start;
+    pointer-events: none;
+  }
+
+  :global(.wv-t.wv-note) {
+    fill: #ff9a2e;
+  }
+
+  :global(.wv-t.wv-r) {
+    text-anchor: end;
+    fill: var(--accent-cyan);
+  }
+
+  .switch {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .switch button {
+    padding: 0.7rem 1.1rem;
+    font: inherit;
+    font-size: var(--text-micro);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    background: none;
+    border: 1px solid var(--hairline);
+    cursor: pointer;
+    transition:
+      color 0.15s,
+      border-color 0.15s;
+  }
+
+  .switch button:hover,
+  .switch [aria-pressed='true'] {
+    color: var(--ink-1);
+    border-color: var(--accent-cyan);
+  }
+
+  .switch .reset {
+    margin-left: auto;
+  }
+
+  .stage {
+    container-type: inline-size;
+    perspective: 1800px;
+    perspective-origin: 50% 30%;
+    padding-block: clamp(1rem, 4vw, 3rem);
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: grab;
+  }
+
+  .stage:active {
+    cursor: grabbing;
+  }
+
+  .tip {
+    position: fixed;
+    z-index: 10;
+    max-width: min(25rem, calc(100vw - 16px));
+    padding: 0.75rem 0.9rem;
+    font-size: var(--text-meta);
+    line-height: 1.45;
+    color: var(--ink-2);
+    background: color-mix(in srgb, var(--paper) 92%, transparent);
+    border: 1px solid var(--hairline);
+    border-left: 2px solid var(--accent-cyan);
+    backdrop-filter: blur(8px);
+    pointer-events: none;
+  }
+
+  .tip b {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: var(--text-micro);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-1);
+  }
+
+  h2 {
+    margin: clamp(3rem, 8vw, 5rem) 0 1.5rem;
+    font-family: var(--font-display);
+    font-size: clamp(1.25rem, 0.9rem + 2vw, 2rem);
+    text-transform: uppercase;
+    color: var(--ink-1);
+  }
+
+  .frame {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: #000;
+    container-type: inline-size;
+  }
+
+  /* The iframe always holds the whole stacked frame (so YouTube never
+     letterboxes it); the script sizes and offsets it so the chosen angle's
+     region fills this 16:9 window. */
+  .frame :global(iframe) {
+    position: absolute;
+    left: calc(var(--il) * 100cqw);
+    top: calc(var(--it) * 100cqw);
+    width: calc(var(--iw) * 100cqw);
+    height: calc(var(--ih) * 100cqw);
+    border: 0;
+  }
+
+  .catch {
+    position: absolute;
+    inset: 0;
+    cursor: pointer;
+  }
+
+  .player:not([data-started]) .catch {
+    pointer-events: none;
+  }
+
+  .fallback {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: var(--gutter);
+    text-align: center;
+    color: var(--ink-3);
+    text-decoration: none;
+    background: #000;
+  }
+
+  .fallback b {
+    padding: 0.7rem 1.1rem;
+    font-size: var(--text-micro);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-1);
+    border: 1px solid var(--accent-cyan);
+  }
+
+  .player[data-failed] .fallback {
+    display: flex;
+  }
+
+  .player[data-failed] .bar {
+    display: none;
+  }
+
+  .soon {
+    display: grid;
+    place-items: center;
+    height: 100%;
+    margin: 0;
+    color: var(--ink-4);
+  }
+
+  .bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    padding-top: 0.75rem;
+  }
+
+  .bar button {
+    padding: 0.55rem 0.9rem;
+    font: inherit;
+    font-size: var(--text-micro);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    background: none;
+    border: 1px solid var(--hairline);
+    cursor: pointer;
+  }
+
+  .bar button:hover,
+  .bar [aria-pressed='true'] {
+    color: var(--ink-1);
+    border-color: var(--accent-cyan);
+  }
+
+  .seek {
+    flex: 1 1 8rem;
+    accent-color: var(--accent-cyan);
+  }
+
+  .time {
+    font-size: var(--text-meta);
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-3);
+  }
+
+  .angles {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .player:fullscreen {
+    display: grid;
+    align-content: center;
+    padding: 1rem;
+    background: #000;
+  }
+
+  .player:fullscreen .frame {
+    width: min(100%, calc((100vh - 5rem) * 16 / 9));
+    margin-inline: auto;
+  }
+
+  /* Descriptions use \n between paragraphs. */
+  .tip span {
+    display: block;
+    white-space: pre-line;
+  }
+</style>
