@@ -302,10 +302,10 @@ function song(bpm: number, seed: number, body: (st: Studio, step: number) => Par
     if (part === 'intro' || part === 'drop' || part === 'drop2' || part === 'outro') drums(b, at, part, b < 8 || b >= 96);
     if (part === 'build' || part === 'drop' || part === 'break' || part === 'drop2') music(b, at, part);
 
-    // Build: snare roll accelerating 1/4 → 1/8 → 1/16 → 1/32, rising in pitch and level.
+    // Build: snare roll accelerating 1/4 → 1/8 → 1/16, rising in pitch and level.
     if (part === 'build') {
       const k = b - 16;
-      const div = k < 4 ? 4 : k < 6 ? 2 : k < 7 ? 1 : 0.5;
+      const div = k < 4 ? 4 : k < 6 ? 2 : 1;
       if (k < 4) st.kick(at(0), 0.8);
       for (let s = 0; s < 16; s += div) {
         const x = (k * 16 + s) / 128;
@@ -380,9 +380,9 @@ const liquid = () =>
     };
   });
 
-// D minor, 172: tight two-step, reese with a moving lowpass, dark stabs.
+// D minor, 174: tight two-step, reese with a moving lowpass, dark stabs.
 const neuro = () =>
-  song(172, 23, (st, step) => {
+  song(174, 23, (st, step) => {
     const r = 38; // D2
     const line: [number, number, number][] = [[0, 0, 12], [12, 3, 4], [16, 0, 12], [28, -2, 4], [32, 0, 12], [44, 5, 4], [48, 1, 16]];
     // Filter LFO cycles every `cyc` steps, kept on the grid via the start offset `off` (steps).
@@ -425,9 +425,9 @@ const neuro = () =>
     };
   });
 
-// G minor, 175: bouncy two-step, wobble bass answered by a hoover-ish glide.
+// G minor, 174: bouncy two-step, wobble bass answered by a hoover-ish glide.
 const jumpUp = () =>
-  song(175, 37, (st, step) => {
+  song(174, 37, (st, step) => {
     const r = 31; // G1
     const wobble = (s: number, len: number, rate: number, at: (s: number) => number) => {
       st.voice(at(s), len * step, mtof(r + 12), 0.32, {
@@ -474,9 +474,9 @@ const jumpUp = () =>
     };
   });
 
-// A minor, 170: amen-style chopped break with ride, gliding sub, offbeat skank stabs.
+// A minor, 174: amen-style chopped break with ride, gliding sub, offbeat skank stabs.
 const jungle = () =>
-  song(170, 51, (st, step) => {
+  song(174, 51, (st, step) => {
     const r = 33; // A1
     const pats = [
       { k: [0, 2, 10, 11], s: [4, 12], g: [7, 9, 15] },
@@ -521,9 +521,9 @@ const jungle = () =>
 
 export const TRACKS: TrackSpec[] = [
   { title: 'Liquid Sunrise', style: 'liquid', bpm: 174, key: 'Fm', semis: 5, render: liquid },
-  { title: 'Black Circuit', style: 'neuro', bpm: 172, key: 'Dm', semis: 2, render: neuro },
-  { title: 'Bounce Factory', style: 'jump up', bpm: 175, key: 'Gm', semis: 7, render: jumpUp },
-  { title: 'Rinse Out 94', style: 'jungle', bpm: 170, key: 'Am', semis: 9, render: jungle },
+  { title: 'Black Circuit', style: 'neuro', bpm: 174, key: 'Dm', semis: 2, render: neuro },
+  { title: 'Bounce Factory', style: 'jump up', bpm: 174, key: 'Gm', semis: 7, render: jumpUp },
+  { title: 'Rinse Out 94', style: 'jungle', bpm: 174, key: 'Am', semis: 9, render: jungle },
 ];
 
 /* ---------------- sampler one-shots ---------------- */
@@ -591,7 +591,7 @@ export const SAMPLES: { name: string; render: () => AudioBuffer }[] = [
     name: 'Rewind',
     render: oneShot(3.2, 7, (st) => {
       // A bar of beat to spin back…
-      const step = 60 / 172 / 4;
+      const step = 60 / 174 / 4;
       for (let s = 0; s < 32; s += 4) {
         st.kick(s * step, s % 16 === 10 ? 0.8 : 1);
         if (s % 8 === 4) st.snare(s * step, 0.9);
