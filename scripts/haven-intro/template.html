@@ -73,16 +73,6 @@
         opacity: 0;
       }
 
-      .mark {
-        width: 84px;
-      }
-
-      .mark svg {
-        display: block;
-        width: 100%;
-        height: auto;
-      }
-
       .title {
         font-family: 'Unbounded', sans-serif;
         font-weight: 800;
@@ -104,6 +94,20 @@
         text-transform: uppercase;
         color: rgba(255, 255, 255, 0.8);
       }
+
+      /* The Haven cat on its speaker, heading the title card. */
+      .cat {
+        height: 250px;
+        margin-bottom: -6px;
+        transform-origin: 50% 100%;
+      }
+
+      .cat svg {
+        display: block;
+        height: 100%;
+        width: auto;
+        overflow: visible;
+      }
     </style>
   </head>
   <body>
@@ -111,11 +115,54 @@
     <p class="line"></p>
 
     <div class="card">
-      <div class="mark">
-        <svg viewBox="0 0 1000 1000" fill="currentColor" fill-rule="evenodd">
+      <!-- scripts/haven-mascot/haven-cat.svg, minus its background, with the
+           parts grouped by body part. -->
+      <div class="cat">
+        <svg viewBox="150 205 410 1055" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round">
+          <g>
+            <path d="M252.5 785.5C252.5 785.5 160 778 163 707.5C166 637 209 599.5 209 599.5" stroke-width="12" />
+          </g>
+          <g>
+            <path
+              d="M430 462C395.209 505.285 384.5 518 359.5 537.5C334.5 557 305.5 565 284 587.5C262.5 610 247 635.5 243 668.5C239 701.5 238 708 243 737.5C248 767 249 799 277.5 799C306 799 314 798.5 338 793C362 787.5 385 774 393 745.5C401 717 394 673 394 673"
+              stroke-width="12"
+            />
+            <path
+              d="M505 490C505 490 519 566 522 589C525 612 527.5 683 528.5 712.5C529.5 742 532 798 522 799.5C518.922 799.962 495.48 800.139 464.5 800.164M287 799.5C287 799.5 394.818 800.219 464.5 800.164M464.5 800.164V668"
+              stroke-width="12"
+            />
+            <g>
+              <mask id="cat-head" fill="white">
+                <path d="M591 398.5C591 451.795 549.139 495 497.5 495C445.861 495 404 451.795 404 398.5C404 345.205 445.861 302 497.5 302C549.139 302 591 345.205 591 398.5Z" />
+              </mask>
+              <path
+                d="M591 398.5C591 451.795 549.139 495 497.5 495C445.861 495 404 451.795 404 398.5C404 345.205 445.861 302 497.5 302C549.139 302 591 345.205 591 398.5Z"
+                stroke-width="24"
+                mask="url(#cat-head)"
+              />
+              <path d="M541.168 304.126C541.168 304.126 508.417 217.167 497.378 223.226C486.339 229.284 478.657 295 478.657 295" stroke-width="12" />
+              <path d="M509.5 371C509.5 371 518.5 375 529.5 371C540.5 367 544.5 357.5 544.5 357.5" stroke-width="12" />
+              <path d="M464 288C464 288 416.715 244.128 409 254C401.285 263.872 418 323.5 418 323.5" stroke-width="12" />
+              <path d="M583 402C575.852 409.431 570.806 409.356 563.5 409.5" stroke-width="8" />
+              <path d="M554 402.5L533 393M552 412L529 410M553 422L532.5 430.5" stroke-width="6" />
+            </g>
+          </g>
           <path
-            d="M182 0H818A182 182 0 0 1 1000 182V818A182 182 0 0 1 818 1000H182A182 182 0 0 1 0 818V182A182 182 0 0 1 182 0ZM219 221H781V783H219ZM273 323H392V442H273ZM608 323H727V442H608ZM288 643H374V673H624V643H710V684A78 78 0 0 1 632 762H366A78 78 0 0 1 288 684Z"
+            d="M255 800H514C532.225 800 547 814.775 547 833V1214C547 1232.23 532.225 1247 514 1247H255C236.775 1247 222 1232.23 222 1214V833C222 814.775 236.775 800 255 800Z"
+            stroke-width="12"
           />
+          <path
+            d="M318 1201H452C455.314 1201 458 1203.69 458 1207V1212C458 1215.31 455.314 1218 452 1218H318C314.686 1218 312 1215.31 312 1212V1207C312 1203.69 314.686 1201 318 1201Z"
+            stroke-width="6"
+          />
+          <g>
+            <path d="M429 896C429 920.301 409.301 940 385 940C360.699 940 341 920.301 341 896C341 871.699 360.699 852 385 852C409.301 852 429 871.699 429 896Z" stroke-width="12" />
+            <circle cx="384.5" cy="895.5" r="15.5" fill="white" stroke="none" />
+          </g>
+          <g>
+            <path d="M476 1073C476 1123.26 435.258 1164 385 1164C334.742 1164 294 1123.26 294 1073C294 1022.74 334.742 982 385 982C435.258 982 476 1022.74 476 1073Z" stroke-width="12" />
+            <circle cx="384.5" cy="1072.5" r="24.5" fill="white" stroke="none" />
+          </g>
         </svg>
       </div>
       <p class="title">HAVEN</p>
@@ -130,7 +177,7 @@
       const line = document.querySelector('.line');
       const scrim = document.querySelector('.scrim');
       const card = document.querySelector('.card');
-      const [mark, title, rule, strap] = card.children;
+      const [cat, title, rule, strap] = card.children;
       let cfg;
       let spans = [];
       let shownLine = -1;
@@ -186,8 +233,8 @@
         title.style.letterSpacing = `${0.9 - 0.58 * a}em`;
         title.style.textIndent = `${0.9 - 0.58 * a}em`;
         title.style.filter = `blur(${(1 - a) * 18}px) drop-shadow(0 0 ${30 * (1 - a) + 14}px rgba(255, 255, 255, 0.35)) drop-shadow(0 4px 28px rgba(0, 0, 0, 0.7))`;
-        mark.style.transform = `scale(${1.4 - 0.4 * a})`;
-        mark.style.filter = `blur(${(1 - a) * 10}px)`;
+        cat.style.transform = `scale(${1.25 - 0.25 * a})`;
+        cat.style.filter = `blur(${(1 - a) * 10}px) drop-shadow(0 4px 18px rgba(0, 0, 0, 0.75))`;
         rule.style.width = `${140 * outCubic(clamp((d - 0.35) / 0.7))}px`;
         strap.style.opacity = clamp((d - 0.6) / 0.6);
 

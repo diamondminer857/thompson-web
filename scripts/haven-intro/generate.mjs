@@ -43,12 +43,12 @@ const AUDIO = 'Haven Intro.wav';
 const FPS = 30;
 const END = 20.6;
 
-// Beat grid measured from the WAV's onsets: beats every 0.4487 s
-// (≈133.7 BPM) from 4.465 s, a 16th-note snare roll from 6.148 s
-// (beat 3.75) swelling until the drop on beat 20 (13.439 s), then a decay
-// to silence. Shifted half a frame early so each hit lands on the frame
-// nearest it.
-const beat = (n) => 4.465 + n * 0.4487 - 0.5 / FPS;
+// Beat grid: 134 BPM, anchored on the drop measured in the WAV (beat 20,
+// 13.439 s), so the beat comes in at 4.48 s and the 16th-note snare roll
+// runs from beat 3.75 up to the drop, then the track decays to silence.
+// Shifted half a frame early so each hit lands on the frame nearest it.
+const BPM = 134;
+const beat = (n) => 13.439 + ((n - 20) * 60) / BPM - 0.5 / FPS;
 const DROP = beat(20);
 
 // `at` is the timeline position, `from` the in-point inside the clip,
