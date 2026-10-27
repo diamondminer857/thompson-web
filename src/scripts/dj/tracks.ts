@@ -6,8 +6,8 @@
  *   intro 16 (drums) → build 8 (roll + riser) → drop 32 → breakdown 16
  *   (no drums) → drop 16 → outro 16 (drums)  = 104 bars
  *
- * Bar 0 beat 0 is at t = 0 and every kick/snare sits exactly on the grid;
- * only hats and ghost notes swing. Noise comes from a seeded PRNG, so a
+ * Bar 0 beat 0 is at t = 0 and every hit sits exactly on the grid: kick on
+ * 1 and 3, snare on 2 and 4. Noise comes from a seeded PRNG, so a
  * track renders identically every time.
  */
 
@@ -320,14 +320,14 @@ function song(bpm: number, seed: number, body: (st: Studio, step: number) => Par
   return st.finish(0.9, 1);
 }
 
-// Shuffled 16th hats: odd 16ths pushed late by `swing` steps, offbeat 8ths accented.
-function hats16(st: Studio, at: (s: number) => number, swing: number, amp: number) {
-  for (let s = 0; s < 16; s++) st.hat(at(s + (s % 2 ? swing : 0)), s % 4 === 2 ? amp : amp * 0.5);
+// Straight 16th hats, offbeat 8ths accented.
+function hats16(st: Studio, at: (s: number) => number, amp: number) {
+  for (let s = 0; s < 16; s++) st.hat(at(s), s % 4 === 2 ? amp : amp * 0.5);
 }
 
 /* ---------------- tracks ---------------- */
 
-// F minor, 174: two-step with shuffled hats, warm pads, rolling bass, pluck lead.
+// F minor, 174: straight hats, warm pads, rolling bass, pluck lead.
 const liquid = () =>
   song(174, 11, (st, step) => {
     const r = 29; // F1
@@ -343,15 +343,15 @@ const liquid = () =>
     return {
       drums(b, at, part, lite) {
         st.kick(at(0));
-        st.kick(at(10));
+        st.kick(at(8));
         if (!lite) {
           st.snare(at(4), 1, 200, 0.15);
           st.snare(at(12), 1, 200, 0.15);
-          st.snare(at(b % 2 ? 9 + 0.15 : 7 + 0.15), 0.14, 230, 0.06);
-          st.snare(at(14 + 0.15), 0.1, 230, 0.06);
+          st.snare(at(b % 2 ? 9 : 7), 0.14, 230, 0.06);
+          st.snare(at(14), 0.1, 230, 0.06);
         }
         if (lite) for (let s = 2; s < 16; s += 4) st.hat(at(s), 0.11);
-        else hats16(st, at, 0.15, 0.11);
+        else hats16(st, at, 0.11);
         if (part === 'drop2') for (let s = 0; s < 16; s += 4) st.ride(at(s), 0.06);
       },
       music(b, at, part) {
@@ -380,7 +380,7 @@ const liquid = () =>
     };
   });
 
-// D minor, 174: tight two-step, reese with a moving lowpass, dark stabs.
+// D minor, 174: reese with a moving lowpass, dark stabs.
 const neuro = () =>
   song(174, 23, (st, step) => {
     const r = 38; // D2
@@ -394,8 +394,7 @@ const neuro = () =>
     return {
       drums(b, at, _part, lite) {
         st.kick(at(0));
-        st.kick(at(10));
-        if (b % 2 && !lite) st.kick(at(13), 0.7);
+        st.kick(at(8));
         if (!lite) {
           st.snare(at(4), 1, 215, 0.11);
           st.snare(at(12), 1, 215, 0.11);
@@ -425,7 +424,7 @@ const neuro = () =>
     };
   });
 
-// G minor, 174: bouncy two-step, wobble bass answered by a hoover-ish glide.
+// G minor, 174: wobble bass answered by a hoover-ish glide.
 const jumpUp = () =>
   song(174, 37, (st, step) => {
     const r = 31; // G1
@@ -443,7 +442,7 @@ const jumpUp = () =>
     return {
       drums(_b, at, _part, lite) {
         st.kick(at(0), 1.05);
-        st.kick(at(10), 1.05);
+        st.kick(at(8), 1.05);
         if (!lite) {
           st.snare(at(4), 1.05, 190, 0.15);
           st.snare(at(12), 1.05, 190, 0.15);
@@ -474,28 +473,28 @@ const jumpUp = () =>
     };
   });
 
-// A minor, 174: amen-style chopped break with ride, gliding sub, offbeat skank stabs.
+// A minor, 174: ride and ghost snares, gliding sub, offbeat skank stabs.
 const jungle = () =>
   song(174, 51, (st, step) => {
     const r = 33; // A1
     const pats = [
-      { k: [0, 2, 10, 11], s: [4, 12], g: [7, 9, 15] },
-      { k: [0, 2, 10], s: [4, 12], g: [7, 9, 14] },
-      { k: [0, 2, 10, 11], s: [4, 12], g: [7, 9, 15] },
-      { k: [0, 2, 10], s: [4, 12], g: [7, 9, 13, 14, 15] }, // fill
+      { k: [0, 8], s: [4, 12], g: [7, 15] },
+      { k: [0, 8], s: [4, 12], g: [7, 14] },
+      { k: [0, 8], s: [4, 12], g: [7, 15] },
+      { k: [0, 8], s: [4, 12], g: [7, 13, 14, 15] }, // fill
     ];
     const subs: [number, number, number][] = [[0, 0, 6], [6, 0, 4], [10, 3, 6], [16, -2, 6], [22, -2, 4], [26, -5, 6]];
     const chords = [[57, 60, 64], [55, 59, 62]]; // Am, G
     return {
       drums(b, at, _part, lite) {
         const p = pats[b % 4];
-        for (const s of lite ? [0, 10] : p.k) st.kick(at(s), 0.95);
+        for (const s of p.k) st.kick(at(s), 0.95);
         if (!lite) {
           for (const s of p.s) st.snare(at(s), 1, 240, 0.09);
-          for (const s of p.g) st.snare(at(s + 0.12), b % 4 === 3 && s > 12 ? 0.45 : 0.17, 250, 0.06);
+          for (const s of p.g) st.snare(at(s), b % 4 === 3 && s > 12 ? 0.45 : 0.17, 250, 0.06);
         }
-        for (let s = 0; s < 16; s += 2) st.ride(at(s + (s % 4 ? 0.2 : 0)), s % 4 ? 0.05 : 0.08);
-        if (!lite) for (let s = 1; s < 16; s += 2) st.hat(at(s + 0.2), 0.035);
+        for (let s = 0; s < 16; s += 2) st.ride(at(s), s % 4 ? 0.05 : 0.08);
+        if (!lite) for (let s = 1; s < 16; s += 2) st.hat(at(s), 0.035);
       },
       music(b, at, part) {
         const ch = chords[b % 2];
