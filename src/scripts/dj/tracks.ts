@@ -59,6 +59,19 @@ function svf() {
   };
 }
 
+// PolyBLEP residual: smooths the jump of a saw/square at phase `p` (0–1), `dt` = phase step per sample.
+function blep(p: number, dt: number) {
+  if (p < dt) {
+    p /= dt;
+    return p + p - p * p - 1;
+  }
+  if (p > 1 - dt) {
+    p = (p - 1) / dt;
+    return p * p + p + p + 1;
+  }
+  return 0;
+}
+
 type Voice = {
   wave?: 'saw' | 'sq' | 'sine' | 'tri';
   det?: number[]; // oscillator frequency ratios (detune)
@@ -69,6 +82,7 @@ type Voice = {
   sus?: number; // level the decay settles to
   r?: number; // release at note end, s
   drive?: number;
+  rev?: number; // reverb send, 0–1
   bend?: number; // start pitch offset in semitones, glides to 0
   bendT?: number;
   key?: string; // cache key when `cut` is a function
@@ -78,6 +92,7 @@ function studio(seconds: number, seed: number) {
   const len = Math.ceil(seconds * SR);
   const out = new Float32Array(len); // drums + fx
   const mus = new Float32Array(len); // bass + pads, ducked by the kick
+  const wet = new Float32Array(len); // reverb send
   const kicks: number[] = [];
   const rnd = prng(seed);
   const noise = () => rnd() * 2 - 1;
@@ -91,7 +106,7 @@ function studio(seconds: number, seed: number) {
   // Identical hits/notes are synthesized once and mixed as copies — that is
   // what keeps a 2.5-minute render well under a second.
   const cache = new Map<string, Float32Array>();
-  const hit = (t: number, amp: number, key: string, dur: number, make: () => (s: number) => number, dst = out) => {
+  const hit = (t: number, amp: number, key: string, dur: number, make: () => (s: number) => number, dst = out, rev = 0) => {
     let b = cache.get(key);
     if (!b) {
       b = new Float32Array(Math.round(dur * SR));
@@ -101,6 +116,7 @@ function studio(seconds: number, seed: number) {
     }
     const i0 = Math.round(t * SR);
     for (let i = 0, n = Math.min(b.length, len - i0); i < n; i++) dst[i0 + i] += b[i] * amp;
+    if (rev) for (let i = 0, n = Math.min(b.length, len - i0); i < n; i++) wet[i0 + i] += b[i] * amp * rev;
   };
 
   const kick = (t: number, amp = 1, f0 = 48) => {
@@ -110,14 +126,14 @@ function studio(seconds: number, seed: number) {
       return (s) => {
         ph += (TAU * (f0 + 170 * Math.exp(-s * 30))) / SR;
         const click = s < 0.003 ? noise() * (1 - s / 0.003) * 0.5 : 0;
-        return (Math.tanh(Math.sin(ph) * 2) * Math.exp(-s * 8) * Math.min(1, s / 0.001) + click) * fade(s, 0.5);
+        return (Math.tanh(Math.sin(ph) * 2) * Math.exp(-s * 13) * Math.min(1, s / 0.001) + click) * fade(s, 0.5);
       };
     });
   };
   const snare = (t: number, amp = 1, tone = 200, dec = 0.13) => {
     const dur = dec * 4.5;
     hit(t, amp, `s${tone}|${dec}`, dur, () => {
-      const hp = svf(), bp = svf();
+      const bp = svf(), hp = svf();
       let p1 = 0, p2 = 0;
       return (s) => {
         const f = tone * (1 + 0.5 * Math.exp(-s * 60));
@@ -125,15 +141,15 @@ function studio(seconds: number, seed: number) {
         p2 += (TAU * f * 1.62) / SR;
         const body = (Math.sin(p1) + 0.35 * Math.sin(p2)) * Math.exp(-s * 24);
         const n = noise();
-        const nz = (hp(n, 1800, 0.7, 2) * 0.8 + bp(n, 5200, 1.2, 1) * 0.7) * Math.exp(-s / dec);
+        const nz = (bp(n, 1800, 0.8, 1) * 2.2 + hp(n, 3500, 0.7, 2) * 0.8) * Math.exp(-s / dec);
         return Math.tanh((body + nz) * 1.4) * fade(s, dur);
       };
-    });
+    }, out, 0.25);
   };
   const hat = (t: number, amp: number, d = 0.018) =>
     hit(t, amp, `h${d}`, d * 6, () => {
       const f = svf();
-      return (s) => f(noise(), 8000, 0.8, 2) * Math.exp(-s / d);
+      return (s) => f(noise(), 8000, 0.8, 2) * Math.exp(-s / d) * 0.8;
     });
   const ride = (t: number, amp: number) =>
     hit(t, amp, 'ride', 0.8, () => {
@@ -164,7 +180,7 @@ function studio(seconds: number, seed: number) {
   // a function must carry a `key` naming that function's shape, or it is
   // rendered fresh every time.
   const voice = (t: number, dur: number, f: number, amp: number, o: Voice = {}) => {
-    const { cut, q = 0.8, a = 0.004, d = Infinity, sus = 0, r = 0.02, drive = 0, bend = 0, bendT = 0.05, key } = o;
+    const { cut, q = 0.8, a = 0.004, d = Infinity, sus = 0, r = 0.02, drive = 0, bend = 0, bendT = 0.05, key, rev = 0 } = o;
     const make = () => {
       const det = o.det ?? [1];
       const n = det.length;
@@ -176,10 +192,16 @@ function studio(seconds: number, seed: number) {
         const fr = bend ? f * 2 ** ((bend * Math.exp(-s / bendT)) / 12) : f;
         let x = 0;
         for (let j = 0; j < n; j++) {
-          let p = ph[j] + (fr * det[j]) / SR;
+          const dt = (fr * det[j]) / SR;
+          let p = ph[j] + dt;
           if (p >= 1) p -= 1;
           ph[j] = p;
-          x += w === 0 ? 2 * p - 1 : w === 1 ? (p < 0.5 ? 1 : -1) : w === 2 ? Math.sin(TAU * p) : 1 - 4 * Math.abs(p - 0.5);
+          // Saw and square are band-limited (PolyBLEP) — naive ones alias into a harsh digital fizz.
+          x +=
+            w === 0 ? 2 * p - 1 - blep(p, dt)
+            : w === 1 ? (p < 0.5 ? 1 : -1) + blep(p, dt) - blep((p + 0.5) % 1, dt)
+            : w === 2 ? Math.sin(TAU * p)
+            : 1 - 4 * Math.abs(p - 0.5);
         }
         x /= n;
         if (cut !== undefined) x = flt(x, typeof cut === 'number' ? cut : cut(s), q, 0);
@@ -189,11 +211,15 @@ function studio(seconds: number, seed: number) {
     };
     if (typeof cut === 'function' && !key) {
       const fn = make();
-      add(t, dur, (s) => fn(s) * amp, mus);
-    } else hit(t, amp, `v${f}|${dur}|${key ?? ''}|${JSON.stringify(o)}`, dur, make, mus);
+      add(t, dur, (s) => {
+        const v = fn(s) * amp;
+        wet[Math.round((t + s) * SR)] += v * rev;
+        return v;
+      }, mus);
+    } else hit(t, amp, `v${f}|${dur}|${key ?? ''}|${JSON.stringify(o)}`, dur, make, mus, rev);
   };
-  const pad = (t: number, dur: number, notes: number[], amp: number, cut = 1500) => {
-    for (const m of notes) voice(t, dur, mtof(m), amp, { det: [0.995, 1.005], cut, q: 0.7, a: 0.5, r: 0.8 });
+  const pad = (t: number, dur: number, notes: number[], amp: number, cut = 2400) => {
+    for (const m of notes) voice(t, dur, mtof(m), amp, { det: [0.995, 1.005], cut, q: 0.7, a: 0.5, r: 0.8, rev: 0.5 });
   };
 
   // In-place feedback delay over the fx bus (sampler one-shots).
@@ -203,7 +229,32 @@ function studio(seconds: number, seed: number) {
   };
 
   // Sum the buses (kick ducks the music), soft-clip, normalise.
+  // Small mono room (Schroeder: 4 damped combs → 2 allpasses) on the send, mixed into the drums bus.
+  const reverb = (mix: number) => {
+    const combs = [1557, 1617, 1491, 1422].map((n) => ({ b: new Float32Array(n), i: 0, lp: 0 }));
+    const aps = [556, 225].map((n) => ({ b: new Float32Array(n), i: 0 }));
+    for (let i = 0; i < len; i++) {
+      let y = 0;
+      for (const c of combs) {
+        const o = c.b[c.i];
+        c.lp = o * 0.7 + c.lp * 0.3;
+        c.b[c.i] = wet[i] + c.lp * 0.78;
+        c.i = (c.i + 1) % c.b.length;
+        y += o;
+      }
+      y *= 0.25;
+      for (const a of aps) {
+        const o = a.b[a.i];
+        a.b[a.i] = y + o * 0.5;
+        a.i = (a.i + 1) % a.b.length;
+        y = o - y * 0.5;
+      }
+      out[i] += y * mix;
+    }
+  };
+
   const finish = (peakTo: number, drive: number, duck = 0.45) => {
+    reverb(0.6);
     kicks.sort((x, y) => x - y);
     const env = new Float32Array(Math.round(0.5 * SR)); // duck gain vs samples since the last kick
     for (let i = 0; i < env.length; i++) env[i] = 1 - duck * Math.exp(-i / (0.07 * SR));
@@ -266,7 +317,7 @@ function song(bpm: number, seed: number, body: (st: Studio, step: number) => Par
     if (b === 71) for (let s = 8; s < 16; s++) st.snare(at(s), 0.3 + 0.05 * (s - 8), 220, 0.08);
     if (b === 24 || b === 40 || b === 72) st.crash(t0, 0.35);
   }
-  return st.finish(0.9, 1.3);
+  return st.finish(0.9, 1);
 }
 
 // Shuffled 16th hats: odd 16ths pushed late by `swing` steps, offbeat 8ths accented.
@@ -310,21 +361,21 @@ const liquid = () =>
           if (first) st.pad(at(0), 32 * step, ch.pad, 0.02 + 0.004 * (b - 16), 600 + 150 * (b - 16));
           return;
         }
-        if (first) st.pad(at(0), 32 * step, ch.pad, part === 'break' ? 0.05 : 0.022, part === 'break' ? 1800 : 1300);
+        if (first) st.pad(at(0), 32 * step, ch.pad, part === 'break' ? 0.06 : 0.045, part === 'break' ? 1800 : 1500);
         if ((part === 'break' && b >= 64) || part === 'drop2') {
           if (first)
             for (const [s, m] of mel)
               for (let e = 0; e < 3; e++)
-                st.voice(at(s + 3 * e), 6 * step, mtof(m), 0.09 * 0.4 ** e, {
-                  key: 'lead', wave: 'tri', det: [1, 2.001], cut: (x) => 600 + 3500 * Math.exp(-x * 12), d: 0.18, r: 0.04,
+                st.voice(at(s + 3 * e), 6 * step, mtof(m), 0.16 * 0.4 ** e, {
+                  key: 'lead', wave: 'tri', det: [1, 2.001], cut: (x) => 600 + 3500 * Math.exp(-x * 12), d: 0.18, r: 0.04, rev: 0.4,
                 });
         }
         if (part === 'break') return;
         for (const [s, o] of roll)
-          st.voice(at(s), 2.5 * step, mtof(r + 12 + ch.root + o), 0.22, {
-            key: 'roll', det: [1, 1.004], cut: (x) => 280 + 2000 * Math.exp(-x * 20), q: 1.4, d: 0.1, sus: 0.3,
+          st.voice(at(s), 2.5 * step, mtof(r + 12 + ch.root + o), 0.32, {
+            key: 'roll', det: [1, 1.004], cut: (x) => 400 + 3200 * Math.exp(-x * 14), q: 1.4, d: 0.1, sus: 0.3,
           });
-        for (const [s, l] of subs) st.voice(at(s), l * step * 0.95, mtof(r + ch.root), 0.5, { wave: 'sine', a: 0.004, r: 0.02 });
+        for (const [s, l] of subs) st.voice(at(s), l * step * 0.95, mtof(r + ch.root), 0.3, { wave: 'sine', a: 0.004, r: 0.02 });
       },
     };
   });
@@ -362,11 +413,11 @@ const neuro = () =>
         }
         if (b % 4 === 0)
           for (const [s, n, l] of line) {
-            reese(at(s), l * step * 0.92, r + n, 0.24, 220, 1700, 8, s % 8);
-            st.voice(at(s), l * step * 0.92, mtof(r + n), 0.42, { wave: 'sine', a: 0.005, r: 0.02 });
+            reese(at(s), l * step * 0.92, r + n, 0.34, 220, 1700, 8, s % 8);
+            st.voice(at(s), l * step * 0.92, mtof(r + n), 0.2, { wave: 'sine', a: 0.005, r: 0.02 });
           }
         const stab = (s: number) => {
-          for (const m of [62, 65, 68]) st.voice(at(s), 2 * step, mtof(m), 0.05, { wave: 'sq', det: [1, 1.01], cut: 2500, d: 0.06 });
+          for (const m of [62, 65, 68]) st.voice(at(s), 2 * step, mtof(m), 0.09, { wave: 'sq', det: [1, 1.01], cut: 2500, d: 0.06, rev: 0.4 });
         };
         if (b % 2) stab(14);
         if (b % 4 === 3) stab(6);
@@ -379,11 +430,11 @@ const jumpUp = () =>
   song(175, 37, (st, step) => {
     const r = 31; // G1
     const wobble = (s: number, len: number, rate: number, at: (s: number) => number) => {
-      st.voice(at(s), len * step, mtof(r + 12), 0.24, {
+      st.voice(at(s), len * step, mtof(r + 12), 0.32, {
         det: [0.995, 1.005], q: 4, drive: 3.5, a: 0.003, r: 0.02, key: `wob${rate}`, // notes start on whole LFO cycles
         cut: (x) => 120 + 2600 * (0.5 - 0.5 * Math.cos((TAU * x) / (rate * step))),
       });
-      st.voice(at(s), len * step, mtof(r), 0.45, { wave: 'sine', a: 0.004, r: 0.02 });
+      st.voice(at(s), len * step, mtof(r), 0.28, { wave: 'sine', a: 0.004, r: 0.02 });
     };
     const hoovers: [number, number, number][][] = [
       [[0, 3, 6], [6, 1, 4], [10, 0, 6]],
@@ -414,10 +465,10 @@ const jumpUp = () =>
           return;
         }
         for (const [s, n, l] of hoovers[(b >> 1) % 2]) {
-          st.voice(at(s), l * step * 0.95, mtof(r + 24 + n), 0.17, {
+          st.voice(at(s), l * step * 0.95, mtof(r + 24 + n), 0.24, {
             det: [0.985, 0.997, 1, 1.004, 1.016], cut: 2800, q: 0.9, bend: -5, bendT: 0.06, drive: 1.5, a: 0.005,
           });
-          st.voice(at(s), l * step * 0.95, mtof(r + n), 0.45, { wave: 'sine', a: 0.004, r: 0.02 });
+          st.voice(at(s), l * step * 0.95, mtof(r + n), 0.28, { wave: 'sine', a: 0.004, r: 0.02 });
         }
       },
     };
@@ -456,11 +507,11 @@ const jungle = () =>
           return;
         }
         for (let s = 2; s < 16; s += 4)
-          for (const m of ch) st.voice(at(s), 1.5 * step, mtof(m), 0.045, { wave: 'sq', det: [1, 1.006], cut: 2400, d: 0.05 });
+          for (const m of ch) st.voice(at(s), 1.5 * step, mtof(m), 0.08, { wave: 'sq', det: [1, 1.006], cut: 2400, d: 0.05, rev: 0.4 });
         if (b % 2 === 0) {
           let prev = 0;
           for (const [s, n, l] of subs) {
-            st.voice(at(s), l * step * 0.95, mtof(r + n), 0.5, { wave: 'sine', a: 0.004, r: 0.02, drive: 1.2, bend: prev - n, bendT: 0.025 });
+            st.voice(at(s), l * step * 0.95, mtof(r + n), 0.3, { wave: 'sine', a: 0.004, r: 0.02, drive: 1.2, bend: prev - n, bendT: 0.025 });
             prev = n;
           }
         }
