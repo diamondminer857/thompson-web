@@ -32,47 +32,24 @@ const video = {
   </header>
 
   <main class="block">
-    <p class="label">DJ pult</p>
-    <h1>Co je co na pultu</h1>
-    <p class="lede">
-      Najeď myší (nebo ťukni) na cokoliv a uvidíš, co to je a co to dělá. Tlačítka se dají mačkat, knoby točit
-      tažením nahoru/dolů, fadery posouvat. Tažením mimo ovladače otočíš celý pult.
-    </p>
-    <p class="lede">
-      A hlavně: <b>pulty opravdu hrají</b> 🔊 V knihovně jsou čtyři drum &amp; bass písničky a skoro každé tlačítko dělá to, co
-      na skutečném pultu. Zkus si první přechod:
-    </p>
-    <ol class="howto">
-      <li>Zmáčkni <b>PLAY</b> na levém decku.</li>
-      <li>
-        Přepni poslech na <b>🎧 Sluchátka</b>, na pravém kanálu zmáčkni <b>CUE</b>, na pravém decku <b>SYNC</b> a <b>PLAY</b>.
-        Teď slyšíš, co DJ ve sluchátkách – další písničku, kterou lidi ještě neslyší.
-      </li>
-      <li>Přepni zpátky na <b>🔊 Repro</b>. Pravý fader pomalu vytáhni nahoru a u jedné z písniček stáhni basy (<b>LOW</b>).</li>
-      <li>Levý fader stáhni dolů. A máš první přechod 🎉</li>
-      <li>Bonus: zapni Beat FX <b>ON</b> (reverb) a stáhni fader – písnička se rozplyne.</li>
-    </ol>
-
     <div class="switch wide" role="group" aria-label="Setup">
       {rigs.map((r, i) => <button type="button" data-rig={r.id} aria-pressed={i === 0 ? 'true' : 'false'}>{r.label}</button>)}
       <button type="button" class="reset">Reset pohledu</button>
     </div>
     <div class="switch listen wide" role="group" aria-label="Co slyšíš">
-      <span>Poslech:</span>
-      <button type="button" data-listen="master" aria-pressed="true">🔊 Repro (co slyší lidi)</button>
+      <button type="button" data-listen="master" aria-pressed="true">🔊 Repro</button>
       <button type="button" data-listen="A" aria-pressed="false">🎧 Sluchátka</button>
       <button type="button" data-listen="B" data-for="cdj" aria-pressed="false" hidden>🎧 Sluchátka B</button>
     </div>
 
     <!-- The FLX4 has no screen of its own — the waveforms live in rekordbox on the laptop. -->
     <div class="laptop wide" data-for="flx4">
-      <p class="laptop-label">rekordbox na notebooku</p>
       <svg viewBox="0 0 800 238" role="img" aria-label="Waveformy obou decků">
         <g class="wv" data-deck="0" data-box="4 4 792 110"></g>
         <g class="wv" data-deck="1" data-box="4 124 792 110"></g>
       </svg>
       <p class="fxline"></p>
-      <p class="laptop-label">Knihovna – vyber písničku (klikem nebo knobem BROWSE) a dej LOAD</p>
+      <p class="laptop-label">Knihovna</p>
       <ol class="lib"></ol>
     </div>
 
@@ -88,7 +65,6 @@ const video = {
         {
           video.id && (
             <a class="fallback" href={`https://youtu.be/${video.id}`} target="_blank" rel="noopener">
-              YouTube tady video nechce pustit (třeba když je stránka otevřená přes IP adresu v síti).
               <b>Otevřít na YouTube ↗</b>
             </a>
           )
@@ -473,35 +449,6 @@ const video = {
     overflow-x: clip;
   }
 
-  h1 {
-    margin: 0 0 1rem;
-    font-family: var(--font-display);
-    font-size: clamp(1.75rem, 1rem + 4vw, 3.25rem);
-    line-height: 1.05;
-    text-transform: uppercase;
-    color: var(--ink-1);
-  }
-
-  .lede {
-    margin: 0 0 2rem;
-    color: var(--ink-3);
-  }
-
-  .howto {
-    margin: 0 0 2rem;
-    padding-left: 1.25rem;
-    color: var(--ink-3);
-  }
-
-  .howto li + li {
-    margin-top: 0.35rem;
-  }
-
-  .howto b,
-  .lede b {
-    color: var(--ink-1);
-  }
-
   .laptop {
     margin-bottom: 0.5rem;
     padding: 0.6rem 0.75rem 0.4rem;
@@ -560,17 +507,6 @@ const video = {
     color: var(--accent-cyan);
   }
 
-  .listen {
-    align-items: center;
-  }
-
-  .listen span {
-    font-size: var(--text-micro);
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--ink-4);
-  }
 
   .listen [hidden] {
     display: none;
