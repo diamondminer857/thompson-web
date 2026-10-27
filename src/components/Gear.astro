@@ -155,8 +155,6 @@ const attrs = (it: Item) => ({
     width: calc(var(--w) * var(--mm));
     height: calc(var(--h) * var(--mm));
     transform-style: preserve-3d;
-    background: #050506;
-    border-radius: calc(5 * var(--mm));
   }
 
   .top {
@@ -168,9 +166,12 @@ const attrs = (it: Item) => ({
     transform: translateZ(calc(var(--z) * var(--mm)));
   }
 
+  /* Each side faces outward; hiding the ones turned away keeps a browser that
+     mis-sorts the 3D layers (Safari) from painting them over the top. */
   .s {
     position: absolute;
     --d: calc(var(--z) * var(--mm));
+    backface-visibility: hidden;
   }
 
   .f {
