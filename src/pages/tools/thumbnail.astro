@@ -1,0 +1,319 @@
+---
+import Base from '../../layouts/Base.astro';
+import { site } from '../../site';
+import mixcloudPhoto from '../../assets/photos/gallery-01.jpg';
+
+/**
+ * scripts/youtube-thumbnail and scripts/haven-art in the browser: the same
+ * layout as their template.html files, redrawn on a <canvas> so it runs
+ * without Playwright. The two templates differ only in the numbers in
+ * FORMATS below. Not linked anywhere and noindex — nothing on it is private,
+ * it only draws whatever photo is picked. Coordinates are the templates' CSS
+ * pixels; the canvas is 2x, like the scripts' deviceScaleFactor.
+ */
+---
+
+<Base title={`${site.name} | Artwork`} noindex>
+  <main class="tool" data-mixcloud-photo={mixcloudPhoto.src}>
+    <h1>Artwork</h1>
+    <form>
+      <label>Formát
+        <select name="format">
+          <option value="youtube">YouTube miniatura (16:9)</option>
+          <option value="mixcloud">Mixcloud artwork (1:1)</option>
+        </select>
+      </label>
+      <label>Číslo epizody <input name="number" value="004" inputmode="numeric" /></label>
+      <label>Série <input name="label" value="Haven" /></label>
+      <label>Styl čísla
+        <select name="style"><option value="solid">solid</option><option value="outline">outline</option></select>
+      </label>
+      <label>Fotka <input name="photo" type="file" accept="image/jpeg,image/png,image/webp" /></label>
+      <label>Pozice fotky vodorovně <input name="px" type="range" min="0" max="100" value="50" /></label>
+      <label>Pozice fotky svisle <input name="py" type="range" min="0" max="100" value="8" /></label>
+    </form>
+    <canvas></canvas>
+    <button type="button" class="download">Stáhnout JPG</button>
+  </main>
+</Base>
+
+<style>
+  .tool {
+    max-width: 68rem;
+    margin: 0 auto;
+    padding: 2rem var(--gutter);
+    display: grid;
+    gap: 1.25rem;
+    font-family: var(--font-body);
+  }
+  h1 {
+    font-family: var(--font-display);
+  }
+  form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 1rem;
+  }
+  label {
+    display: grid;
+    gap: 0.35rem;
+    font-size: var(--text-meta);
+  }
+  canvas {
+    justify-self: center;
+    max-width: 100%;
+    max-height: 80vh;
+    border: 1px solid var(--hairline);
+  }
+  .download {
+    justify-self: start;
+    padding: 0.75rem 1.25rem;
+    font: 600 1rem var(--font-body);
+    cursor: pointer;
+  }
+</style>
+
+<script>
+  const tool = document.querySelector<HTMLElement>('.tool')!;
+
+  // Each template's numbers, side by side. `mask` is where the photo's top
+  // fade starts/ends, `scrim` the radial darkening behind the numeral
+  // (ellipse width/height/centre-y as fractions), `bottom` the darkening
+  // under the footer (opacity, height fraction).
+  const FORMATS = {
+    youtube: {
+      W: 1280, H: 720, pad: 56, file: 'thumb',
+      photo: '/head-poster.jpg',
+      mask: [0.1, 0.34], scrim: [0.78, 0.4, 0.48], bottom: [0.8, 0.46],
+      mark: 68,
+      label: { size: 19, ls: 0.26, line: [50, 3], gap: 16 },
+      numeral: { size: 260, stroke: 4 },
+      footer: { gap: 10, rule: 90, wordmark: [26, 0.18], strapline: [15, 0.14] },
+    },
+    mixcloud: {
+      W: 1400, H: 1400, pad: 90, file: 'haven',
+      photo: tool.dataset.mixcloudPhoto!,
+      mask: [0.08, 0.38], scrim: [0.72, 0.36, 0.46], bottom: [0.78, 0.42],
+      mark: 110,
+      label: { size: 26, ls: 0.28, line: [70, 4], gap: 22 },
+      numeral: { size: 300, stroke: 5 },
+      footer: { gap: 14, rule: 110, wordmark: [34, 0.2], strapline: [20, 0.16] },
+    },
+  };
+  type Format = keyof typeof FORMATS;
+
+  const PAPER = '#0a0a0a';
+  const INK = '#fff';
+  const INK_3 = 'rgb(186 186 186)'; // color-mix(#fff 72%, #0a0a0a)
+  const CYAN = '#5be3ff';
+  const MAGENTA = '#ff5fc0';
+  const MARK = new Path2D(
+    'M182 0H818A182 182 0 0 1 1000 182V818A182 182 0 0 1 818 1000H182A182 182 0 0 1 0 818V182A182 182 0 0 1 182 0ZM219 221H781V783H219ZM273 323H392V442H273ZM608 323H727V442H608ZM288 643H374V673H624V643H710V684A78 78 0 0 1 632 762H366A78 78 0 0 1 288 684Z',
+  );
+
+  const form = tool.querySelector('form')!;
+  const canvas = tool.querySelector('canvas')!;
+  const ctx = canvas.getContext('2d')!;
+  const css = getComputedStyle(document.documentElement);
+  const DISPLAY = css.getPropertyValue('--font-display');
+  const BODY = css.getPropertyValue('--font-body');
+
+  // Fonts as the templates set them. The strapline asks for 400, but the
+  // templates only load Space Grotesk 600/700, so it actually renders at 600.
+  const fonts = (f: (typeof FORMATS)[Format]) => ({
+    label: `600 ${f.label.size}px ${BODY}`,
+    numeral: `800 ${f.numeral.size}px ${DISPLAY}`,
+    wordmark: `700 ${f.footer.wordmark[0]}px ${BODY}`,
+    strapline: `600 ${f.footer.strapline[0]}px ${BODY}`,
+  });
+
+  type Photo = CanvasImageSource & { width: number; height: number };
+  // Per format, so switching back keeps whatever photo was picked for it.
+  const photos = {} as Record<Format, Photo>;
+  const format = () => form.format.value as Format;
+
+  // Letter-spaced text the way CSS does it: spacing after every glyph,
+  // including the last one. Returns the advance width.
+  function tracked(text: string, font: string, spacing: number, x?: number, y?: number, stroke = false) {
+    ctx.font = font;
+    let w = 0;
+    for (const ch of text) {
+      if (x !== undefined) (stroke ? ctx.strokeText : ctx.fillText).call(ctx, ch, x + w, y!);
+      w += ctx.measureText(ch).width + spacing;
+    }
+    return w;
+  }
+
+  // `line-height: normal` box height and the baseline offset inside a box of
+  // `boxH` (half-leading split evenly above and below).
+  function metrics(font: string, boxH?: number) {
+    ctx.font = font;
+    const m = ctx.measureText('H');
+    const a = m.fontBoundingBoxAscent;
+    const h = a + m.fontBoundingBoxDescent;
+    return { h: boxH ?? h, base: ((boxH ?? h) - h) / 2 + a };
+  }
+
+  function draw() {
+    const f = FORMATS[format()];
+    const F = fonts(f);
+    const { W, H, pad: PAD } = f;
+    const photo = photos[format()];
+    const data = new FormData(form);
+    const number = String(data.get('number') || '0').padStart(3, '0');
+    const label = `${data.get('label')} — mix series`.toUpperCase();
+    const outline = data.get('style') === 'outline';
+
+    canvas.width = W * 2;
+    canvas.height = H * 2;
+    ctx.setTransform(2, 0, 0, 2, 0, 0);
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = PAPER;
+    ctx.fillRect(0, 0, W, H);
+
+    // Photo: cover + background-position, masked out at the top.
+    if (photo?.width) {
+      const off = new OffscreenCanvas(W * 2, H * 2);
+      const o = off.getContext('2d')!;
+      o.scale(2, 2);
+      const s = Math.max(W / photo.width, H / photo.height);
+      const dw = photo.width * s;
+      const dh = photo.height * s;
+      o.drawImage(photo, ((W - dw) * Number(data.get('px'))) / 100, ((H - dh) * Number(data.get('py'))) / 100, dw, dh);
+      const mask = o.createLinearGradient(0, 0, 0, H);
+      mask.addColorStop(f.mask[0], 'transparent');
+      mask.addColorStop(f.mask[1], '#000');
+      o.globalCompositeOperation = 'destination-in';
+      o.fillStyle = mask;
+      o.fillRect(0, 0, W, H);
+      ctx.drawImage(off, 0, 0, W, H);
+    }
+
+    // .numeral-scrim: radial-gradient(ellipse w% h% at 50% y%, rgba(0,0,0,.6), transparent 85%)
+    const [ew, eh, ey] = f.scrim;
+    const rx = ew * W;
+    const k = (eh * H) / rx;
+    ctx.save();
+    ctx.scale(1, k);
+    const radial = ctx.createRadialGradient(W / 2, (ey * H) / k, 0, W / 2, (ey * H) / k, rx);
+    radial.addColorStop(0, 'rgba(0 0 0 / 0.6)');
+    radial.addColorStop(0.85, 'rgba(0 0 0 / 0)');
+    ctx.fillStyle = radial;
+    ctx.fillRect(0, 0, W, H / k);
+    ctx.restore();
+
+    // .bottom-scrim
+    const bottom = ctx.createLinearGradient(0, H, 0, H * (1 - f.bottom[1]));
+    bottom.addColorStop(0, `rgba(0 0 0 / ${f.bottom[0]})`);
+    bottom.addColorStop(1, 'rgba(0 0 0 / 0)');
+    ctx.fillStyle = bottom;
+    ctx.fillRect(0, 0, W, H);
+
+    // .mark in the top-left corner.
+    ctx.save();
+    ctx.translate(PAD, PAD);
+    ctx.scale(f.mark / 1000, f.mark / 1000);
+    ctx.fillStyle = INK;
+    ctx.fill(MARK, 'evenodd');
+    ctx.restore();
+
+    // Vertical flow: body is a flex column with space-between inside the padding.
+    const lm = metrics(F.label);
+    const wm = metrics(F.wordmark);
+    const sm = metrics(F.strapline);
+    const ns = f.numeral.size;
+    const nm = metrics(F.numeral, ns);
+    const rule = 3;
+    const footerH = rule + f.footer.gap + wm.h + f.footer.gap + sm.h;
+    const gap = (H - 2 * PAD - lm.h - nm.h - footerH) / 2;
+
+    // .label: rule, gap, then text with indent + tracking equal to the letter-spacing.
+    // No glow: the templates' `0 0 Npx -2px` shadow has a spread of at least
+    // half the line's height, so it renders as nothing.
+    const [lw, lh] = f.label.line;
+    const ls = f.label.ls * f.label.size;
+    const labelW = lw + f.label.gap + ls + tracked(label, F.label, ls);
+    const x = (W - labelW) / 2;
+    ctx.fillStyle = CYAN;
+    ctx.fillRect(x, PAD + lm.h / 2 - lh / 2, lw, lh);
+    ctx.fillStyle = INK_3;
+    tracked(label, F.label, ls, x + lw + f.label.gap + ls, PAD + lm.base);
+
+    // .numeral: centred across the full content width, gradient at 135deg over its box.
+    const top = PAD + lm.h + gap;
+    const text = `#${number}`;
+    const nls = -0.02 * ns;
+    const nw = tracked(text, F.numeral, nls);
+    const half = ((W - 2 * PAD + ns) * Math.SQRT1_2) / 2;
+    const cx = W / 2;
+    const cy = top + ns / 2;
+    const grad = ctx.createLinearGradient(cx - half * Math.SQRT1_2, cy - half * Math.SQRT1_2, cx + half * Math.SQRT1_2, cy + half * Math.SQRT1_2);
+    grad.addColorStop(0, CYAN);
+    grad.addColorStop(1, MAGENTA);
+    ctx.fillStyle = grad;
+    ctx.strokeStyle = MAGENTA;
+    ctx.lineWidth = f.numeral.stroke;
+    tracked(text, F.numeral, nls, (W - nw) / 2, top + nm.base, outline);
+
+    // .footer
+    let y = H - PAD - footerH;
+    const rw = f.footer.rule;
+    const ruleGrad = ctx.createLinearGradient(W / 2 - rw / 2, 0, W / 2 + rw / 2, 0);
+    ruleGrad.addColorStop(0, CYAN);
+    ruleGrad.addColorStop(1, MAGENTA);
+    ctx.fillStyle = ruleGrad;
+    ctx.fillRect(W / 2 - rw / 2, y, rw, rule);
+    y += rule + f.footer.gap;
+    ctx.fillStyle = INK;
+    const wls = f.footer.wordmark[1] * f.footer.wordmark[0];
+    tracked('THOMPSON', F.wordmark, wls, (W - tracked('THOMPSON', F.wordmark, wls)) / 2, y + wm.base);
+    y += wm.h + f.footer.gap;
+    ctx.fillStyle = INK_3;
+    const sls = f.footer.strapline[1] * f.footer.strapline[0];
+    const strap = 'TRANCE & MELODIC TECHNO';
+    tracked(strap, F.strapline, sls, (W - tracked(strap, F.strapline, sls)) / 2, y + sm.base);
+  }
+
+  async function loadDefault(fmt: Format) {
+    if (photos[fmt]) return;
+    const img = new Image();
+    img.src = FORMATS[fmt].photo;
+    await Promise.all([img.decode(), ...Object.values(fonts(FORMATS[fmt])).map((x) => document.fonts.load(x))]);
+    photos[fmt] ??= img;
+  }
+
+  form.addEventListener('input', async (e) => {
+    if ((e.target as HTMLElement).getAttribute('name') === 'format') {
+      form.photo.value = '';
+      await loadDefault(format());
+    }
+    draw();
+  });
+  form.photo.addEventListener('change', async () => {
+    const file = form.photo.files[0];
+    if (!file) return;
+    try {
+      photos[format()] = await createImageBitmap(file);
+      draw();
+    } catch {
+      alert('Tuhle fotku prohlížeč neumí otevřít — použij JPG, PNG nebo WebP.');
+    }
+  });
+
+  tool.querySelector('.download')!.addEventListener('click', () => {
+    canvas.toBlob(
+      (blob) => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob!);
+        a.download = `${FORMATS[format()].file}-${String(form.number.value || '0').padStart(3, '0')}.jpg`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      },
+      'image/jpeg',
+      0.95,
+    );
+  });
+
+  await loadDefault(format());
+  draw();
+</script>
