@@ -492,7 +492,7 @@ export const SAMPLES: { name: string; render: () => AudioBuffer }[] = [
     }),
   },
   {
-    name: 'Siréna',
+    name: 'Siren',
     render: oneShot(3, 2, (st) => {
       const f = svf();
       let ph = 0;
