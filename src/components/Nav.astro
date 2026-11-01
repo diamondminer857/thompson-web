@@ -1,6 +1,6 @@
 ---
 import Logo from './Logo.astro';
-import { getLangFromUrl, useTranslations, alternatePath } from '../i18n';
+import { getLangFromUrl, useTranslations, alternatePath, withLang } from '../i18n';
 
 interface Props {
   /** Poster-variant pages have no `/cs` counterpart — hide the toggle there. */
@@ -15,7 +15,7 @@ const otherHref = alternatePath(Astro.url.pathname, otherLang);
 
 const links = [
   { href: '#shows', label: t('nav.shows') },
-  { href: '#haven', label: t('nav.haven') },
+  { href: withLang('/haven', lang), label: t('nav.haven') },
   { href: '#about', label: t('nav.about') },
   { href: '#press', label: t('nav.press') },
   { href: '#booking', label: t('nav.book') },
