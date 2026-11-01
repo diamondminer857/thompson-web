@@ -14,6 +14,7 @@ import haven002Artwork from './assets/photos/haven-002.jpg';
 import haven003Artwork from './assets/photos/haven-003.jpg';
 import haven004Artwork from './assets/photos/haven-004.jpg';
 import haven005Artwork from './assets/photos/haven-005.jpg';
+import haven006Artwork from './assets/photos/haven-006.jpg';
 
 export const site = {
   name: 'THOMPSON',
@@ -133,6 +134,14 @@ interface Mix {
 
 /** Haven episodes, newest first. */
 export const mixes: Mix[] = [
+  {
+    label: 'Haven',
+    number: '006',
+    feed: '/Thompson111/thompson-haven-mix-006/',
+    url: 'https://www.mixcloud.com/Thompson111/thompson-haven-mix-006/',
+    youtube: 'https://youtu.be/1cT_nvqsBZg',
+    artwork: { src: haven006Artwork, alt: 'media.haven006', ratio: '1 / 1', path: 'src/assets/photos/haven-006.jpg', tone: 'magenta' },
+  },
   {
     label: 'Haven',
     number: '005',
